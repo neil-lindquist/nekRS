@@ -1,0 +1,218 @@
+
+void lagrange_eval(double *p, double *data,
+                   unsigned int n, int der, double x,
+                   unsigned int i)
+{
+  if (i < n) {
+
+    const double *z=data, *w=z+n;
+    double *d = data+2*n, *u0=d+n, *v0=u0+n;
+
+    d[i] = 2*(x-z[i]);
+    @barrier("local");
+    u0[i] = 1;
+    for (unsigned int j = 1; j <= i; ++j) u0[i] *= d[j];
+    v0[i] = 1;
+    for (unsigned int j = n-1; j >= i; ++j) v0[i] *= d[j];
+    p[i] = w[i] * u0[i] * v0[i];
+
+    if (der > 0) {
+      double *p1 = p+n, *u1=v0+n, *v1=u1+n;
+
+      @barrier("local");
+      u1[i] = 0;
+      for (unsigned int j = 1; j <= i; ++j) u1[i] = u1[i]*d[j] + v0[j];
+      v1[i] = 0;
+      for (unsigned int j = n-1; j >= i; ++j) v1[i] = v1[i]*d[j] + v0[j];
+      p1[i] = 2*w[i]*(u1[i]*v0[i] + u0[i]*v1[i]);
+
+      if (der > 1) {
+        double *p2 = p1+n, *u2 = v1 + n, *v2 = u2+n;
+
+        @barrier("local");
+        u2[i] = 0;
+        for (unsigned int j = 1; j <= i; ++j) u2[i] = u2[i]*d[j] + 2*u1[j];
+        v2[i] = 0;
+        for (unsigned int j = n-1; j >=i; ++j) v2[i] = v2[i]*d[j] + 2*v1[j];
+        p2[i] = 4*w[i]*(u2[i]*v0[i] + 2*u1[i]*v1[i]+u0[i]*v2[i]);
+      }
+    }
+  }
+}
+
+
+
+@kernel void findpts_el_eval_2(
+        double *const out_base, const unsigned int out_stride,
+  const double *const   r_base, const unsigned int   r_stride,
+  const unsigned int pn, const double *const in,
+  const unsigned int nr, const unsigned int ns,
+        double *lag_data_0, double *lag_data_1)
+{
+  unsigned int inner_size = max(nr, ns);
+
+  for (unsigned int i = 0; i<pn; ++i; @outer){
+
+    @shared double wtr[MAX_LAGRANGE_DEGREE];
+    @shared double wts[MAX_LAGRANGE_DEGREE];
+    @shared double slice[MAX_LAGRANGE_DEGREE];
+    @shared double sums[MAX_LAGRANGE_DEGREE];
+
+    const double *r = r_base + r_stride*i;
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      lagrange_eval(wtr, lag_data_0, nr, 0, r[0], j);
+      lagrange_eval(wts, lag_data_1, ns, 0, r[1], j);
+    }
+
+    // tensor_mxm(slice, nr, in, ns, wts, pn)
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      if (j < nr) {
+        double sum = 0;
+        const double *in_j = in+j;
+
+        for (unsigned int k = 0; k < ns; ++k) {
+          sum += in_j[k*nr] * wts[k];
+        }
+        slice[j] = sum;
+      }
+    }
+
+    // tensor_i1(wtr, nr, slice)
+    double *out = out_base + out_stride*i;
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      if (j < nr) {
+        sums[j] = wtr[j]*slice[j];
+      } else {
+        sums[0] = 0;
+      }
+
+// max_GLL_N is assumed to be at most 256
+#if MAX_LAGRANGE_DEGREE>128
+      if (j < 128 && j + 125 < nr) {
+        sums[j] += sums[j+128];
+      }
+      @barrier("local");
+#endif
+
+#if MAX_LAGRANGE_DEGREE>64
+      if (j < 64 && j + 64 < nr) {
+        sums[j] += sums[j+64];
+      }
+      @barrier("local");
+#endif
+
+      // assumes warp/vector size is at least 32
+      if (j < 32 && j + 32 < nr) {
+        sums[j] += sums[j+32];
+      }
+      if (j < 16 && j + 16 < nr) {
+        sums[j] += sums[j+16];
+      }
+      if (j < 8 && j + 8 < nr) {
+        sums[j] += sums[j+8];
+      }
+      if (j < 4 && j + 4 < nr) {
+        sums[j] += sums[j+4];
+      }
+      if (j < 2 && j + 2 < nr) {
+        sums[j] += sums[j+2];
+      }
+      if (j == 0 && 1 < nr) {
+        *out = sums[0] + sums[1];
+      }
+    }
+  }
+}
+
+@kernel void findpts_el_eval_3(
+        double *const out_base, const unsigned int out_stride,
+  const double *const   r_base, const unsigned int   r_stride,
+  const unsigned int pn, const double *const in,
+  const unsigned int nr, const unsigned int ns, const unsigned int nt,
+        double *lag_data_0, double *lag_data_1, double *lag_data_2)
+{
+  unsigned int j, inner_size = max(nr, ns);
+
+  for (unsigned int i = 0; i<pn; ++i; @outer){
+
+    @shared double wtr[MAX_LAGRANGE_DEGREE];
+    @shared double wts[MAX_LAGRANGE_DEGREE];
+    @shared double wtt[MAX_LAGRANGE_DEGREE];
+    @shared double slice[MAX_LAGRANGE_DEGREE*MAX_LAGRANGE_DEGREE];
+    @shared double sums[MAX_LAGRANGE_DEGREE]; // could be overlaped with wtt
+
+    const double *r = r_base + r_stride*i;
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      lagrange_eval(wtr, lag_data_0, nr, 0, r[0], j);
+      lagrange_eval(wts, lag_data_1, ns, 0, r[1], j);
+      lagrange_eval(wtt, lag_data_2, nt, 0, r[2], j);
+    }
+
+    // tensor_mxm(slice, nr*ns, in, nt, wtt, pn)
+    for (unsigned int jj = 0; jj < inner_size; ++jj; @inner) {
+      if (jj < nr) {
+        for (unsigned int j = jj; j < nr*ns; j += nr) {
+          double sum = 0;
+          const double *in_j = in+j;
+
+          for (unsigned int k = 0; k < nt; ++k) {
+            sum += in_j[k*nr*ns] * wtt[k];
+          }
+          slice[j] = sum;
+        }
+      }
+    }
+
+    // tensor_i2(wtr, nr, wts, ns, slice, sums)
+    // computes wtr^T * slice * wts
+    // w/ wtr and wts vectors, and slice matrix
+    double *out = out_base + out_stride*i;
+
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      if (j < nr) {
+        double l_sum = 0;
+        for (unsigned int k = 0; k < ns; ++k) {
+          l_sum = wtr[k]*slice[j*nr + k];
+        }
+        sums[j] = wts[j] * l_sum;
+      } else {
+        sums[0] = 0;
+      }
+
+// MAX_LAGRANGE_DEGREE is assumed to be at most 256
+#if MAX_LAGRANGE_DEGREE>128
+      if (j < 128 && j + 125 < nr) {
+        sums[j] += sums[j+128];
+      }
+      @barrier("local");
+#endif
+
+#if MAX_LAGRANGE_DEGREE>64
+      if (j < 64 && j + 64 < nr) {
+        sums[j] += sums[j+64];
+      }
+      @barrier("local");
+#endif
+
+      // assumes warp/vector size is at least 32
+      if (j < 32 && j + 32 < nr) {
+        sums[j] += sums[j+32];
+      }
+      if (j < 16 && j + 16 < nr) {
+        sums[j] += sums[j+16];
+      }
+      if (j < 8 && j + 8 < nr) {
+        sums[j] += sums[j+8];
+      }
+      if (j < 4 && j + 4 < nr) {
+        sums[j] += sums[j+4];
+      }
+      if (j < 2 && j + 2 < nr) {
+        sums[j] += sums[j+2];
+      }
+      if (j == 0 && 1 < nr) {
+        *out = sums[0] + sums[1];
+      }
+    }
+  }
+}
