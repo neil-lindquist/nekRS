@@ -253,7 +253,7 @@ void ogsFindpts(    dlong  *const  code_base  , const dlong  code_stride,
                     dfloat *const     r_base  , const dlong     r_stride,
                     dfloat *const dist2_base  , const dlong dist2_stride,
               const dfloat *const     x_base[], const dlong     x_stride[],
-              const dfloat npt, ogs_findpts_t *const fd);
+              const dlong npt, ogs_findpts_t *const fd);
 void ogsFindptsEval(
         dfloat *const  out_base, const dlong  out_stride,
   const dlong  *const code_base, const dlong code_stride,
@@ -261,6 +261,14 @@ void ogsFindptsEval(
   const dlong  *const   el_base, const dlong   el_stride,
   const dfloat *const    r_base, const dlong    r_stride,
   const dlong npt, const dfloat *const in, ogs_findpts_t *const fd);
+
+void ogsFindptsEval(
+        dfloat *const  out_base, const dlong  out_stride,
+  const dlong  *const code_base, const dlong code_stride,
+  const dlong  *const proc_base, const dlong proc_stride,
+  const dlong  *const   el_base, const dlong   el_stride,
+  const dfloat *const    r_base, const dlong    r_stride,
+  const dlong npt, occa::memory d_in, ogs_findpts_t *const fd);
 
 
 #define USE_OOGS

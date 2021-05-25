@@ -154,12 +154,17 @@ namespace ogs {
   occa::kernel scatterManyKernel_double;
   occa::kernel scatterManyKernel_int;
   occa::kernel scatterManyKernel_long;
+
+
+  occa::kernel findpts_local_eval_2;
+  occa::kernel findpts_local_eval_3;
 }
 
 
 void ogs::initKernels(MPI_Comm comm, occa::device device, bool verbose) {
 
   ogs::kernelInfo["defines/ " "p_blockSize"] = BLOCKSIZE;
+  ogs::kernelInfo["defines/ " "MAX_GLL_N"] = MAX_GLL_N;
   ogs::kernelInfo["defines/ " "dlong"] = dlongString;
   ogs::kernelInfo["defines/ " "hlong"] = hlongString;
 
@@ -187,7 +192,7 @@ void ogs::initKernels(MPI_Comm comm, occa::device device, bool verbose) {
   MPI_Barrier(comm);
 
   for (int r=0;r<2;r++){
-    if ((r==0 && rank==0) || (r==1 && rank>0)) {      
+    if ((r==0 && rank==0) || (r==1 && rank>0)) {
 
       ogs::gatherScatterKernel_floatAdd = device.buildKernel(DOGS "/okl/gatherScatter.okl", "gatherScatter_floatAdd", props);
       ogs::gatherScatterKernel_floatMul = device.buildKernel(DOGS "/okl/gatherScatter.okl", "gatherScatter_floatMul", props);
@@ -327,6 +332,10 @@ void ogs::initKernels(MPI_Comm comm, occa::device device, bool verbose) {
       ogs::scatterManyKernel_double = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_double", props);
       ogs::scatterManyKernel_int = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_int", props);
       ogs::scatterManyKernel_long = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_long", props);
+
+
+      ogs::findpts_local_eval_2 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_2", props);
+      ogs::findpts_local_eval_3 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_3", props);
     }
     MPI_Barrier(comm);
   }
@@ -447,7 +456,9 @@ void ogs::freeKernels() {
   ogs::scatterManyKernel_int.free();
   ogs::scatterManyKernel_long.free();
 
+  ogs::findpts_local_eval_2.free();
+  ogs::findpts_local_eval_3.free();
+
   ogs::o_haloBuf.free();
   ogs::haloBuf = NULL;
 }
-
