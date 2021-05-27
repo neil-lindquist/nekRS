@@ -54,7 +54,7 @@ ogs_findpts_t *ogsFindptsSetup(
     assert(false);
   }
 
-  ogs_findpts_t *ogs_handle = malloc(sizeof(ogs_findpts_t));
+  ogs_findpts_t *ogs_handle = (ogs_findpts_t*)malloc(sizeof(ogs_findpts_t));
   ogs_handle->D = D;
   ogs_handle->findpts_data = findpts_data;
   return ogs_handle;
@@ -63,9 +63,9 @@ ogs_findpts_t *ogsFindptsSetup(
 
 void ogsFindptsFree(ogs_findpts_t *fd) {
   if (fd->D == 2) {
-    ogsHostFindptsFree_2(ogs_findpts_t->findpts_data);
+    ogsHostFindptsFree_2((findpts_data_2*)fd->findpts_data);
   } else {
-    ogsHostFindptsFree_3(ogs_findpts_t->findpts_data);
+    ogsHostFindptsFree_3((findpts_data_3*)fd->findpts_data);
   }
   free(fd);
 }
@@ -89,7 +89,7 @@ void ogsFindpts(    dlong  *const  code_base  , const dlong  code_stride,
                          r_base,     r_stride,
                      dist2_base, dist2_stride,
                          x_base,     x_stride,
-                     npt, fd->findpts_data);
+                     npt, (findpts_data_2*)fd->findpts_data);
   } else {
     ogsHostFindpts_3( code_base,  code_stride,
                       proc_base,  proc_stride,
@@ -97,7 +97,7 @@ void ogsFindpts(    dlong  *const  code_base  , const dlong  code_stride,
                          r_base,     r_stride,
                      dist2_base, dist2_stride,
                          x_base,     x_stride,
-                     npt, fd->findpts_data);
+                     npt, (findpts_data_3*)fd->findpts_data);
   }
 }
 
@@ -118,13 +118,13 @@ void ogsFindptsEval(
                          proc_base, proc_stride,
                            el_base,   el_stride,
                             r_base,    r_stride,
-                         npt, in, fd->findpts_data);
+                         npt, in, (findpts_data_2*)fd->findpts_data);
   } else {
     ogsHostFindptsEval_3( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
                            el_base,   el_stride,
                             r_base,    r_stride,
-                         npt, in, fd->findpts_data);
+                         npt, in, (findpts_data_3*)fd->findpts_data);
   }
 }

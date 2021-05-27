@@ -47,8 +47,8 @@ extern "C"
   struct findpts_data_2;
   struct findpts_data_3;
 
-  typedef ogsFindptsData_2 findpts_data_2;
-  typedef ogsFindptsData_3 findpts_data_3;
+  typedef findpts_data_2 ogsFindptsData_2;
+  typedef findpts_data_3 ogsFindptsData_3;
 
   struct findpts_data_2 *ogsHostFindptsSetup_2(
     MPI_Comm comm,

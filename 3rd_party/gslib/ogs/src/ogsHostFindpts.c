@@ -26,6 +26,7 @@ SOFTWARE.
 
 /* compile with C compiler (not C++) */
 
+#include <assert>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -36,7 +37,7 @@ SOFTWARE.
 #include "ogstypes.h"
 
 struct findpts_data_2 *ogsHostFindptsSetup_2(
-  MPI_Comm comm,
+  MPI_Comm mpi_comm,
   const dfloat *const elx[2],
   const dlong n[2], const dlong nel,
   const dlong m[2], const dfloat bbox_tol,
@@ -46,12 +47,15 @@ struct findpts_data_2 *ogsHostFindptsSetup_2(
   assert(sizeof(dfloat) == sizeof(double));
   assert(sizeof(dlong) == sizeof(uint));
 
-  return findpts_setup_2(comm, elx, n, nel, m, bbox_tol,
+  struct comm gs_comm;
+  comm_init(&gs_comm, mpi_comm);
+
+  return findpts_setup_2(gs_comm, elx, n, nel, m, bbox_tol,
                          local_hash_size, global_hash_size, npt_max, newt_tol);
 }
 
 struct findpts_data_3 *ogsHostFindptsSetup_3(
-  MPI_Comm comm,
+  MPI_Comm mpi_comm,
   const dfloat *const elx[3],
   const dlong n[3], const dlong nel,
   const dlong m[3], const dfloat bbox_tol,
@@ -60,6 +64,9 @@ struct findpts_data_3 *ogsHostFindptsSetup_3(
 
   assert(sizeof(dfloat) == sizeof(double));
   assert(sizeof(dlong) == sizeof(uint));
+
+  struct comm gs_comm;
+  comm_init(&gs_comm, mpi_comm);
 
   return findpts_setup_3(comm, elx, n, nel, m, bbox_tol,
                          local_hash_size, global_hash_size, npt_max, newt_tol);
