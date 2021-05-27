@@ -240,7 +240,7 @@ typedef struct {
 
 ogs_findpts_t *ogsFindptsSetup(
   const dlong D, MPI_Comm comm,
-  const dfloat *const elx,
+  const dfloat *const elx[],
   const dlong n[], const dlong nel,
   const dlong m[], const dfloat bbox_tol,
   const hlong local_hash_size, const hlong global_hash_size,

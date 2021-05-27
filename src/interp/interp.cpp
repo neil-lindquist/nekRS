@@ -1,8 +1,10 @@
 
 #include <mpi.h>
 #include "nrs.hpp"
-#include "interp.hpp"
+#include "platform.hpp"
 #include <vector>
+
+#include "interp.hpp"
 
 // input:
 //   nrs   ... nekRS configuration data
@@ -20,23 +22,25 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
 
   mesh_t *mesh = nrs->meshV;
 
-  unsigned nmsh = mesh->N;
-  unsigned nelm = mesh->Nelements;
-  unsigned D = mesh->dim;
+  dlong nmsh = mesh->N;
+  dlong nelm = mesh->Nelements;
+  dlong D = mesh->dim;
 
   // element geometry
-  double elx[3] = {mesh->x, mesh->y, mesh->z};
+  dfloat *elx[3] = {mesh->x, mesh->y, mesh->z};
 
   // element dimensions
-  unsigned n1[3] = {mesh->N, mesh->N, mesh->N};
+  dlong n1[3] = {mesh->N, mesh->N, mesh->N};
 
-  unsigned m1[3] = {2*n1[0], 2*n1[1], 2*n1[2]};
+  dlong m1[3] = {2*n1[0], 2*n1[1], 2*n1[2]};
 
   // used for # of cells in hash tables
-  int hash_size = nelm*n1[0]*n1[1];
+  dlong hash_size = nelm*n1[0]*n1[1];
   if (D == 3) hash_size *= n1[2];
 
-  void *findpts_handle = ogsFindptsSetup(mesh->comm, D, elx, n1, nelm, m1, bb_tol,
+  MPI_Comm comm = platform_t::getInstance()->comm.mpiComm;
+
+  void *findpts_handle = ogsFindptsSetup(comm, D, elx, n1, nelm, m1, bb_tol,
                                          hash_size, hash_size, npt_max, tol);
 
   struct interp_data *handle = new interp_data();
@@ -64,24 +68,24 @@ void interp_free(struct interp_data *handle) {
 //
 // output:
 //   out            ... interpolation value(s) dim [nfld,n]
-void interp_nfld(double *fld, unsigned nfld,
-                 double *x,
-                 int n, int *iwk, double *rwk,
-                 int nmax, bool if_locate_pts,
+void interp_nfld(dfloat *fld, dlong nfld,
+                 dfloat *x[],
+                 dlong n, dlong *iwk, dfloat *rwk,
+                 dlong nmax, bool if_locate_pts,
                  struct interp_data *handle,
-                 double *out) {
+                 dfloat *out) {
 
   assert(n <= nmax);
 
-  int    *code  = iwk;
-  int    *proc  = iwk+2*nmax;
-  int    *el    = iwk+nmax;
-  double *r     = rwk+nmax;
-  double *dist2 = rwk;
+  dlong  *code  = iwk;
+  dlong  *proc  = iwk+2*nmax;
+  dlong  *el    = iwk+nmax;
+  dfloat *r     = rwk+nmax;
+  dfloat *dist2 = rwk;
 
   bool if_trans_out = false;
-  unsigned D = handle->nrs->meshV->dim;
-  unsigned x_stride[3] = {1, 1, 1};
+  dlong D = handle->nrs->meshV->dim;
+  dlong x_stride[3] = {1, 1, 1};
 
   unsigned nfail = 0;
   if (if_locate_pts) {
@@ -107,9 +111,9 @@ void interp_nfld(double *fld, unsigned nfld,
   }
 
   for (int ifld = 0; ifld < nfld; ++ifld) {
-     int in_offset  = ifld*handle->nrs->fieldOffset;
-     int out_offset = ifld*n;
-     int out_stride = 1;
+     dlong in_offset  = ifld*handle->nrs->fieldOffset;
+     dlong out_offset = ifld*n;
+     dlong out_stride = 1;
      if (if_trans_out) {
        out_offset = ifld;
        out_stride = nfld;
