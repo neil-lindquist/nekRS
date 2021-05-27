@@ -43,14 +43,14 @@ add_dependencies(gs gs_build)
 # =============================================================
 
 set(OGS_SOURCES
-        ${OGS_SOURCE_DIR}/src/ogsFindPts.cpp
+        ${OGS_SOURCE_DIR}/src/ogsFindpts.cpp
         ${OGS_SOURCE_DIR}/src/ogsGather.cpp
         ${OGS_SOURCE_DIR}/src/ogsGatherMany.cpp
         ${OGS_SOURCE_DIR}/src/ogsGatherScatter.cpp
         ${OGS_SOURCE_DIR}/src/ogsGatherScatterMany.cpp
         ${OGS_SOURCE_DIR}/src/ogsGatherScatterVec.cpp
         ${OGS_SOURCE_DIR}/src/ogsGatherVec.cpp
-        ${OGS_SOURCE_DIR}/src/ogsHostFindPts.c
+        ${OGS_SOURCE_DIR}/src/ogsHostFindpts.c
         ${OGS_SOURCE_DIR}/src/ogsHostGather.c
         ${OGS_SOURCE_DIR}/src/ogsHostGatherMany.c
         ${OGS_SOURCE_DIR}/src/ogsHostGatherScatter.c

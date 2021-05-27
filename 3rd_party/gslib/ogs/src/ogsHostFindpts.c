@@ -26,7 +26,7 @@ SOFTWARE.
 
 /* compile with C compiler (not C++) */
 
-#include <assert>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -50,7 +50,7 @@ struct findpts_data_2 *ogsHostFindptsSetup_2(
   struct comm gs_comm;
   comm_init(&gs_comm, mpi_comm);
 
-  return findpts_setup_2(gs_comm, elx, n, nel, m, bbox_tol,
+  return findpts_setup_2(&gs_comm, elx, n, nel, m, bbox_tol,
                          local_hash_size, global_hash_size, npt_max, newt_tol);
 }
 
@@ -68,7 +68,7 @@ struct findpts_data_3 *ogsHostFindptsSetup_3(
   struct comm gs_comm;
   comm_init(&gs_comm, mpi_comm);
 
-  return findpts_setup_3(comm, elx, n, nel, m, bbox_tol,
+  return findpts_setup_3(&gs_comm, elx, n, nel, m, bbox_tol,
                          local_hash_size, global_hash_size, npt_max, newt_tol);
 }
 
