@@ -4,8 +4,9 @@
 #include "nrs.hpp"
 
 struct interp_data {
-  nrs_t *nsr;
+  nrs_t *nrs;
   double tol;
+  unsigned D;
   void *findpts;
 };
 
@@ -16,8 +17,7 @@ struct interp_data {
 // return:
 //   pointer to interpolation handles
 struct interp_data* interp_setup(nrs_t *nrs, double tol, unsigned nelm);
-
-void interp_free_2(struct interp_data *handle);
+void interp_free(struct interp_data *handle);
 
 // input:
 //   fld            ... source field(s)
