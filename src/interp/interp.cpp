@@ -10,7 +10,7 @@
 //
 // return:
 //   pointer to interpolation handles
-struct interp_data* interp_setup(nrs_t *nrs, double tol, unsigned nelm) {
+struct interp_data* interp_setup(nrs_t *nrs, double tol) {
 
   if (tol < 5e-13) {
     tol = 5e-13;
@@ -18,7 +18,7 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol, unsigned nelm) {
   int npt_max = 128;
   int bb_tol = 0.01;
 
-  mesh_t *mesh nrs->meshV;
+  mesh_t *mesh = nrs->meshV;
 
   unsigned nmsh = mesh->N;
   unsigned nelm = mesh->Nelements;
@@ -80,7 +80,7 @@ void interp_nfld(double *fld, unsigned nfld,
   double *dist2 = rwk;
 
   bool if_trans_out = false;
-  unsigned D = handle->nrs->mesh->dim;
+  unsigned D = handle->nrs->meshV->dim;
   unsigned x_stride[3] = {1, 1, 1};
 
   unsigned nfail = 0;

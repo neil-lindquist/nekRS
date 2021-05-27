@@ -246,12 +246,12 @@ ogs_findpts_t *ogsFindptsSetup(
   const hlong local_hash_size, const hlong global_hash_size,
   const dlong npt_max, const dfloat newt_tol);
 void ogsFindptsFree(ogs_findpts_t *fd);
-void ogsFindpts(    dlong  *const  code_base, const dlong  code_stride,
-                    dlong  *const  proc_base, const dlong  proc_stride,
-                    dlong  *const    el_base, const dlong    el_stride,
-                    dfloat *const     r_base, const dlong     r_stride,
-                    dfloat *const dist2_base, const dlong dist2_stride,
-              const dfloat *const     x_base, const dlong     x_stride,
+void ogsFindpts(    dlong  *const  code_base  , const dlong  code_stride,
+                    dlong  *const  proc_base  , const dlong  proc_stride,
+                    dlong  *const    el_base  , const dlong    el_stride,
+                    dfloat *const     r_base  , const dlong     r_stride,
+                    dfloat *const dist2_base  , const dlong dist2_stride,
+              const dfloat *const     x_base[], const dlong     x_stride[],
               const dfloat npt, ogs_findpts_t *const fd);
 void ogsFindptsEval(
         dfloat *const  out_base, const dlong  out_stride,

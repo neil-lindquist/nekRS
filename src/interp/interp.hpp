@@ -16,7 +16,7 @@ struct interp_data {
 //
 // return:
 //   pointer to interpolation handles
-struct interp_data* interp_setup(nrs_t *nrs, double tol, unsigned nelm);
+struct interp_data* interp_setup(nrs_t *nrs, double tol);
 void interp_free(struct interp_data *handle);
 
 // input:
