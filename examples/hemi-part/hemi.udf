@@ -21,26 +21,26 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
   int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
 
-  int k  = gcount; // icount = total # particles emitted
+  int k  = gcount; // total # particles emitted
   int l  = lcount; // Index into local particle array
 
   int nw = 200;
 
   for (int line = 0; line < 4; ++line) { // 4 lines at different heights
     dfloat xp = -2.5;
-    dfloat zp = .05 + (line-1)*0.075;
+    dfloat zp = .05 + line*0.075;
     for (int part = 0; part < nw; ++part) { // nw points on a wire
       dfloat dy =  1.0*2/(nw-1);
-      dfloat yp = -1.0 + dy*(part-1);
+      dfloat yp = -1.0 + dy*part;
 
       if (k%mpi_size == mpi_rank) { // Inject particle _only_ on this processor
-        x[l][1] = xp;
-        x[l][2] = yp;
-        x[l][3] = zp;
+        x[l][0] = xp;
+        x[l][1] = yp;
+        x[l][2] = zp;
         partid[l] = k+1;
 //      partv[l] = time;  // A simple coloring scheme
 //      partv[l] = k;     // Another simple coloring scheme
-        partv[l] = line;  // color by line
+        partv[l] = line+1;  // color by line
 
         ++l; // local count
         if (l >= LPART) l=0; // Retire old particles by overwriting their data
@@ -152,7 +152,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
   int n_active = max_points - min_points + 1;
   int npass = n_active / LPART;
   if (n_active > npass*LPART) ++npass;
-  int ilast=min_points-1;
+  int ilast=min_points;
 
   if (mpi_rank == 0) fprintf(file_out, "X Y Z Color\n");
 
@@ -160,7 +160,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
     int mpart = std::min(LPART, max_points - ilast);
     int i0 = ilast;
     int i1 = i0 + mpart;
-    int ilast = i1;
+    ilast = i1;
 
     memset(&x_temp[0][0], 0, mpart*(MAX_D+1)*sizeof(dfloat));
     for (int ii=0; ii < npart; ++ii) {
@@ -177,7 +177,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
     if (mpi_rank == 0) {
       for (int i = 0; i < mpart; ++i) {
         for (int j = 0; j < D+1; ++j) {
-          fprintf(file_out, " %17.9f", x_root[i][j]);
+          fprintf(file_out, " %17.9e", x_root[i][j]);
         }
         fprintf(file_out, "\n");
       }
