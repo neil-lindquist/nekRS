@@ -14,7 +14,7 @@
 
 /* Particle Functions */
 void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART],
-                   int npart) {
+                   int &npart) {
 
   static int gcount = 0, lcount = 0;
 
@@ -33,7 +33,7 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
       dfloat dy =  1.0*2/(nw-1);
       dfloat yp = -1.0 + dy*(part-1);
 
-      if (k%mpi_size != mpi_rank) { // Inject particle _only_ on this processor
+      if (k%mpi_size == mpi_rank) { // Inject particle _only_ on this processor
         x[l][1] = xp;
         x[l][2] = yp;
         x[l][3] = zp;
@@ -102,7 +102,7 @@ void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
   interp_v(u1, x, npart, nrs);
 
   dfloat dt = nrs->dt[0];
-  dlong D = nrs->meshV->dim;
+  dlong D = nrs->dim;
 
   for (int i=0; i < LPART; ++i) {
     for (int k=0; k < D; ++k) {
@@ -124,7 +124,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
   static int out_step = 0;
   ++out_step;
 
-  dlong D = nrs->meshV->dim;
+  dlong D = nrs->dim;
   MPI_Comm mpi_comm = platform_t::getInstance()->comm.mpiComm;
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
   int mpi_size = platform_t::getInstance()->comm.mpiCommSize;

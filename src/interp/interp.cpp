@@ -46,7 +46,10 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
   struct interp_data *handle = new interp_data();
   handle->nrs = nrs;
   handle->tol = tol;
+  handle->D = D;
   handle->findpts = findpts_handle;
+
+  return handle;
 }
 
 
@@ -83,7 +86,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
   dfloat *r     = rwk+nmax;
   dfloat *dist2 = rwk;
 
-  dlong D = handle->nrs->meshV->dim;
+  dlong D = handle->nrs->dim;
 
   unsigned nfail = 0;
   if (if_locate_pts) {
