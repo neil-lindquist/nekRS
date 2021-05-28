@@ -15,7 +15,7 @@
 void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART],
                    int npart) {
 
-  static int gcount = 0, icount = 0;
+  static int gcount = 0, lcount = 0;
 
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
   int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
@@ -33,9 +33,9 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
       dfloat yp = -1.0 + dy*(part-1);
 
       if (k%mpi_size != mpi_rank) { // Inject particle _only_ on this processor
-        x[l,1] = xp;
-        x[l,2] = yp;
-        x[l,3] = zp;
+        x[l][1] = xp;
+        x[l][2] = yp;
+        x[l][3] = zp;
         partid[l] = k+1;
 //      partv[l] = time;  // A simple coloring scheme
 //      partv[l] = k;     // Another simple coloring scheme
@@ -56,8 +56,10 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
 // could be added to interp API
 void interp_v(dfloat uvw[LPART][MAX_D], dfloat xyz[LPART][MAX_D], int npart,
               nrs_t *nrs) {
-  static dfloat rwork[LPART][MAX_D+1];
-  static int    iwork[LPART][3];
+  // uvw, xyz have size [LPART, MAX_D]
+
+  static dfloat rwork[LPART*(MAX_D+1)];
+  static int    iwork[LPART*3];
 
   static interp_data *interp_handle;
   static bool called = false;
@@ -66,12 +68,15 @@ void interp_v(dfloat uvw[LPART][MAX_D], dfloat xyz[LPART][MAX_D], int npart,
     interp_handle = interp_setup(nrs, 0);
   }
 
-  dfloat *x_base[3] = {xyz, xyz+1, xyz+2};
-  dlong x_stride[3] = {3, 3, 3};
+  dfloat *x_base[3];
+  x_base[0] = &xyz[0][0];
+  x_base[1] = x_base[0]+1;
+  x_base[2] = x_base[0]+2;
+  dlong x_stride[3] = {MAX_D, MAX_D, MAX_D};
 
   interp_nfld(nrs->U, nrs->dim, x_base, x_stride, npart,
               iwork, rwork, LPART, true, interp_handle,
-              uvw, true); // transpose output to match layout of uvw
+              &uvw[0][0], true); // transpose output to match layout of uvw
 }
 
 void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
@@ -80,9 +85,9 @@ void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
   double c1, c2, c3;
   if (tstep ==0) { // AB1
     memset(vh, 0, 2*LPART*MAX_D*sizeof(dfloat));
-    c1 = 1.0
-    c2 = 0.0
-    c3 = 0.0
+    c1 = 1.0;
+    c2 = 0.0;
+    c3 = 0.0;
   } else if (tstep == 1) { // AB2
     c1 =  3.0 / 2.0;
     c2 = -1.0 / 2.0;
@@ -124,7 +129,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
   int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
 
-  File *file_out;
+  std::FILE *file_out;
   if (mpi_rank == 0) {
     char fname[128];
     sprintf(fname, "part%05d.3d", out_step)
@@ -168,7 +173,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
       }
     }
 
-    MPI_Reduce(x_temp, x_root, (MAX_D+1)*mpart, MPI_DFLOAT, MPI_SUM, 0, mpi_comm);
+    MPI_Reduce(&x_temp[0][0], &x_root[0][0], (MAX_D+1)*mpart, MPI_DFLOAT, MPI_SUM, 0, mpi_comm);
     if (mpi_rank == 0) {
       for (int i = 0; i < mpart; ++i) {
         for (int j = 0; j < D+1; ++j) {
