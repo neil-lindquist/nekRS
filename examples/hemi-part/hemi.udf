@@ -1,0 +1,216 @@
+//
+// nekRS User Defined File
+//
+#include <cstring>
+#include <math.h>
+#include "interp.hpp"
+#include "udf.hpp"
+
+#define INTP_NMAX 4000
+#define LPART INTP_NMAX /* max number of particles per MPI rank */
+#define MAX_D 3
+
+/* Particle Functions */
+void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART],
+                   int npart) {
+
+  static int lcount = 0, icount = 0;
+
+  int mpi_rank = platform_t::getInstance()->comm.mpiRank;
+  int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
+
+  int k  = gcount; // icount = total # particles emitted
+  int l  = lcount; // Index into local particle array
+
+  int nw = 200;
+
+  for (int line = 0; line < 4; ++line) { // 4 lines at different heights
+    dfloat xp = -2.5;
+    dfloat zp = .05 + (line-1)*0.075;
+    for (int part = 0; part < nw; ++part) { // nw points on a wire
+      dfloat dy =  1.0*2/(nw-1);
+      dfloat yp = -1.0 + dy*(ipart-1);
+
+      if (k%mpi_size != mpi_rank) { // Inject particle _only_ on this processor
+        x[l,1] = xp
+        x[l,2] = yp
+        x[l,3] = zp
+        partid[l] = k+1;
+//      partv[l] = time;  // A simple coloring scheme
+//      partv[l] = k;     // Another simple coloring scheme
+        partv[l] = line;  // color by line
+
+        ++l; // local count
+        if (l >= LPART) l=0; // Retire old particles by overwriting their data
+     }
+     ++k; // Total count
+    }
+  }
+
+  gcount = k;
+  lcount = l;
+  npart  = std::max(npart,lcount);
+}
+
+// could be added to interp API
+void interp_v(dfloat uvw[LPART][MAX_D], dfloat xyz[LPART][MAX_D], int npart,
+              nrs_t *nrs) {
+  static dfloat rwork[LPART][MAX_D+1];
+  static int    iwork[LPART][3];
+
+  static interp_data *interp_handle;
+  static bool called = false;
+  if (!called) {
+    called = true;
+    interp_handle = interp_setup(nrs, 0);
+  }
+
+  dlong x_base[3]   = {xyz, xyz+1, xyz+2};
+  dlong x_stride[3] = {3, 3, 3};
+
+  interp_nfld(nrs->U, nrs->dim, x_base, x_stride, npart,
+              iwork, rwork, LPART, true, interp_handle,
+              uvw, true); // transpose output to match layout of uvw
+}
+
+void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
+                         dfloat partv[LPART], int npart, dfloat dt, int tstep) {
+
+  double c1, c2, c3;
+  if (tstep ==0) { // AB1
+    memset(vh, 0, 2*LPART*MAX_D*sizeof(dfloat));
+    rzero(vh,3*ndim*npart)
+    c1 = 1.0
+    c2 = 0.0
+    c3 = 0.0
+  } else if (tstep == 1) { // AB2
+    c1 =  3.0 / 2.0;
+    c2 = -1.0 / 2.0;
+    c3 =  0.0 / 2.0;
+  } else { // AB3
+    c1 =  23.0 / 12.0;
+    c2 = -16.0 / 12.0;
+    c3 =   5.0 / 12.0;
+  }
+
+  static dfloat u1[LPART][MAX_D];
+  interp_v(u1, x, npart);
+
+  for (int i=0; i < LPART; ++i) {
+    for (int k=0; k < ndim; ++k) {
+//     Update particle position and velocity history
+       x[i][k] += dt*(c1*u1[i][k] + c2*vh[i][0][k] + c3*vh[i][1][k]);
+       vh[i][1][k] = vh[i][0][k]
+       vh[i][0][k] = u1[k][i]
+    }
+  }
+}
+
+void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
+                   dfloat partv[LPART], int npart, nrst_t *nrs)
+{
+
+  static dfloat x_temp[LPART][MAX_D+1];
+  static dfloat x_root[LPART][MAX_D+1];
+
+  static int out_step = 0;
+  ++out_step;
+
+  dlong D = nrs->meshV->dim;
+  MPI_Comm mpi_comm = platform_t::getInstance()->comm.mpiComm;
+  int mpi_rank = platform_t::getInstance()->comm.mpiRank;
+  int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
+
+  File *file_out;
+  if (mpi_rank == 0) {
+    char fname[128];
+    sprintf(fname, "part%05d.3d", out_step)
+    file_out = fopen(fname, "w+");
+  }
+
+  //
+  int l_min = MAX_INT, l_max = MIN_INT, min_points, max_points;
+  for (int i = 0; i < npart; ++i) {
+    if (l_min > partid[i]) {
+      l_min = partid[i];
+    }
+    if (l_max < partid[i]) {
+      l_max = partid[i];
+    }
+  }
+  MPI_Allreduce(l_min, min_points, 1, MPI_INT, MPI_MIN, mpi_comm);
+  MPI_Allreduce(l_max, max_points, 1, MPI_INT, MPI_MAX, mpi_comm);
+
+  int n_active   = max_points - min_points + 1
+  int npass = n_active / LPART;
+  if (n_active > npass*LPART) ++npass;
+  int ilast=min_points-1;
+
+  if (mpi_rank == 0) fprintf(file_out, "X Y Z Color\n");
+
+  do ipass=1,npass
+  for (int ipass = 0; i < npass; ++i) {
+    int mpart = std::min(LPART, max_points - ilast);
+    int i0 = ilast;
+    int i1 = i0 + mpart;
+    int ilast = i1;
+
+    memset(x_tmp, 0, mpart*(MAX_D+1)*sizeof(dfloat));
+    for (int ii=0; ii < npart; ++ii) {
+      if (i0 < partid[ii] && partid[ii] <= i1) {
+        int i = partid[ii]-i0;
+        for (int j = 0; j < D; ++j) {
+          x_temp[i][j] = x[ii][j];       // coordinates
+        }
+        x_temp[i][D] = partv[ii];        // value
+      }
+    }
+
+    MPI_Reduce(x_temp, x_root, (MAX_D+1)*mpart, MPI_DFLOAT, MPI_SUM, 0, mpi_comm);
+    if (mpi_rank == 0) {
+      for (int i = 0; i < mpart; ++i) {
+        for (int j = 0; j < D+1; ++j) {
+          fprintf(file_out, " %17.9f", work[i][j]);
+        }
+        fprintf(file_out, "\n");
+      }
+    }
+  }
+
+  if (mpi_rank == 0) fclose(file_out);
+}
+
+
+void my_particle_generator(nrs_t *nrs, int tstep) {
+
+  static int npart = 0;
+  static int partids[LPART];
+  static dfloat pts[LPART][MAX_D];
+  static dfloat old_vels[LPART][2];
+  static dfloat partv[LPART];
+
+  bool ifnewpart = nrs->isOutputStep;
+  bool ifoutpart = nrs->isOutputStep;
+
+  if (ifnewpart) particle_init(pts, partid, partv, npart);
+  particle_advect_std         (pts, old_vel,partv, npart, nrs->dt[0], tstep);
+  if (ifoutpart) particle_out (pts, partid, partv, npart);
+  }
+}
+
+/* UDF Functions */
+
+void UDF_LoadKernels(nrs_t *nrs)
+{
+}
+
+void UDF_Setup(nrs_t *nrs)
+{
+}
+
+void UDF_ExecuteStep(nrs_t *nrs, dfloat time, int tstep)
+{
+  nek::ocopyToNek(time, tstep);
+  nek::userchk();
+  my_particle_generator(nrs, tstep);
+}
