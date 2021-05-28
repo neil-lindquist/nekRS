@@ -40,7 +40,7 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
 
   MPI_Comm comm = platform_t::getInstance()->comm.mpiComm;
 
-  void *findpts_handle = ogsFindptsSetup(comm, D, elx, n1, nelm, m1, bb_tol,
+  void *findpts_handle = ogsFindptsSetup(D, comm, elx, n1, nelm, m1, bb_tol,
                                          hash_size, hash_size, npt_max, tol);
 
   struct interp_data *handle = new interp_data();
@@ -90,13 +90,17 @@ void interp_nfld(dfloat *fld, dlong nfld,
 
   unsigned nfail = 0;
   if (if_locate_pts) {
-    ogsFindpts(code,  1,
-               proc,  1,
-               el,    1,
-               r,     D,
-               dist2, 1,
-               x,     x_stride,
+    // findpts takes strides in terms of bytes, but interp_nfld takes strides in terms of elements
+    dlong *x_stride_bytes = malloc(D*sizeof(dlong));
+    for (int i = 0; i < D; ++i) x_stride_bytes[i] = x_stride[i]*sizeof(dfloat);
+    ogsFindpts(code,  1*sizeof(dlong),
+               proc,  1*sizeof(dlong),
+               el,    1*sizeof(dlong),
+               r,     D*sizeof(dfloat),
+               dist2, 1*sizeof(dfloat),
+               x,     x_stride_bytes,
                n, (ogs_findpts_t*)handle->findpts);
+    free(x_stride_bytes);
 
     for (int in = 0; in < n; ++in) {
       if (code[in] == 1) {
@@ -119,11 +123,11 @@ void interp_nfld(dfloat *fld, dlong nfld,
        out_offset = ifld;
        out_stride = nfld;
      }
-     ogsFindptsEval(out+out_offset, out_stride,
-                    code,           1,
-                    proc,           1,
-                    el,             1,
-                    r,              D,
+     ogsFindptsEval(out+out_offset, out_stride*sizeof(dfloat),
+                    code,           1*sizeof(dlong),
+                    proc,           1*sizeof(dlong),
+                    el,             1*sizeof(dlong),
+                    r,              D*sizeof(dfloat),
                     n, fld+in_offset, (ogs_findpts_t*)handle->findpts);
   }
 
