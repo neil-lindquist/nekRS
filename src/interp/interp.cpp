@@ -91,7 +91,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
   unsigned nfail = 0;
   if (if_locate_pts) {
     // findpts takes strides in terms of bytes, but interp_nfld takes strides in terms of elements
-    dlong *x_stride_bytes = malloc(D*sizeof(dlong));
+    dlong *x_stride_bytes = (dlong*)malloc(D*sizeof(dlong));
     for (int i = 0; i < D; ++i) x_stride_bytes[i] = x_stride[i]*sizeof(dfloat);
     ogsFindpts(code,  1*sizeof(dlong),
                proc,  1*sizeof(dlong),
