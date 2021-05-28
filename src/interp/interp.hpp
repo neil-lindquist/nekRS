@@ -32,12 +32,12 @@ void interp_free(struct interp_data *handle);
 //
 // output:
 //   out            ... interpolation value(s) dim [nfld,n]
-void interp_nfld(double *fld, unsigned nfld,
-                 double *x, // stride = D
-                 int n, int *iwk, double *rwk,
-                 int nmax, bool if_locate_pts,
+void interp_nfld(dfloat *fld, dlong nfld,
+                 dfloat *x[], dlong x_stride[],
+                 dlong n, dlong *iwk, dfloat *rwk,
+                 dlong nmax, bool if_locate_pts,
                  struct interp_data *handle,
-                 double *out);
+                 dfloat *out, bool if_trans_out = false);
 
 
 #endif
