@@ -1,6 +1,7 @@
 //
 // nekRS User Defined File
 //
+#include <climits>
 #include <cstring>
 #include <cstdio>
 #include <math.h>
@@ -56,7 +57,6 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
 // could be added to interp API
 void interp_v(dfloat uvw[LPART][MAX_D], dfloat xyz[LPART][MAX_D], int npart,
               nrs_t *nrs) {
-  // uvw, xyz have size [LPART, MAX_D]
 
   static dfloat rwork[LPART*(MAX_D+1)];
   static int    iwork[LPART*3];
@@ -132,7 +132,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
   std::FILE *file_out;
   if (mpi_rank == 0) {
     char fname[128];
-    sprintf(fname, "part%05d.3d", out_step)
+    sprintf(fname, "part%05d.3d", out_step);
     file_out = fopen(fname, "w+");
   }
 
@@ -146,8 +146,8 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
       l_max = partid[i];
     }
   }
-  MPI_Allreduce(l_min, min_points, 1, MPI_INT, MPI_MIN, mpi_comm);
-  MPI_Allreduce(l_max, max_points, 1, MPI_INT, MPI_MAX, mpi_comm);
+  MPI_Allreduce(&l_min, &min_points, 1, MPI_INT, MPI_MIN, mpi_comm);
+  MPI_Allreduce(&l_max, &max_points, 1, MPI_INT, MPI_MAX, mpi_comm);
 
   int n_active = max_points - min_points + 1;
   int npass = n_active / LPART;
@@ -156,13 +156,13 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
 
   if (mpi_rank == 0) fprintf(file_out, "X Y Z Color\n");
 
-  for (int ipass = 0; i < npass; ++i) {
+  for (int ipass = 0; ipass < npass; ++ipass) {
     int mpart = std::min(LPART, max_points - ilast);
     int i0 = ilast;
     int i1 = i0 + mpart;
     int ilast = i1;
 
-    memset(x_tmp, 0, mpart*(MAX_D+1)*sizeof(dfloat));
+    memset(&x_temp[0][0], 0, mpart*(MAX_D+1)*sizeof(dfloat));
     for (int ii=0; ii < npart; ++ii) {
       if (i0 < partid[ii] && partid[ii] <= i1) {
         int i = partid[ii]-i0;
@@ -177,7 +177,7 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
     if (mpi_rank == 0) {
       for (int i = 0; i < mpart; ++i) {
         for (int j = 0; j < D+1; ++j) {
-          fprintf(file_out, " %17.9f", work[i][j]);
+          fprintf(file_out, " %17.9f", x_root[i][j]);
         }
         fprintf(file_out, "\n");
       }
@@ -191,9 +191,9 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
 void my_particle_generator(nrs_t *nrs, int tstep) {
 
   static int npart = 0;
-  static int partids[LPART];
+  static int partid[LPART];
   static dfloat pts[LPART][MAX_D];
-  static dfloat old_vels[LPART][2];
+  static dfloat old_vel[LPART][2][MAX_D];
   static dfloat partv[LPART];
 
   bool ifnewpart = nrs->isOutputStep;
@@ -202,7 +202,6 @@ void my_particle_generator(nrs_t *nrs, int tstep) {
   if (ifnewpart) particle_init(pts, partid,  partv, npart);
   particle_advect_std         (pts, old_vel, partv, npart, nrs, tstep);
   if (ifoutpart) particle_out (pts, partid,  partv, npart, nrs);
-  }
 }
 
 /* UDF Functions */
