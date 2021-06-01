@@ -60,18 +60,19 @@ void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
 
   static dfloat u1[LPART][MAX_D];
 
+  dlong D = nrs->dim;
+
   dfloat *u_base[MAX_D], *x_base[MAX_D];
   dlong u_stride[MAX_D], x_stride[MAX_D];
   for (int i = 0; i < D; ++i) {
-    u_base[i]   = &u1[0][D];
+    u_base[i]   = &u1[0][i];
     u_stride[i] = MAX_D;
-    x_base[i]   = &x[0][D];
+    x_base[i]   = &x[0][i];
     x_stride[i] = MAX_D;
   }
 
-  interp_v(u_base, u_stride, x_base, x_stride, npart, nrs);
+  interp_velocity(u_base, u_stride, x_base, x_stride, npart, nrs);
 
-  dlong D = nrs->dim;
   double c1, c2, c3, dt = nrs->dt[0];
   if (tstep ==0) { // AB1
     memset(vh, 0, 2*LPART*MAX_D*sizeof(dfloat));
