@@ -37,7 +37,7 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
         x[l][0] = xp;
         x[l][1] = yp;
         x[l][2] = zp;
-        partid[l] = k+1;
+        partid[l] = k;
 //      partv[l] = time;  // A simple coloring scheme
 //      partv[l] = k;     // Another simple coloring scheme
         partv[l] = line+1;  // color by line
@@ -157,14 +157,14 @@ void particle_out (dfloat x[LPART][MAX_D], int partid[LPART],
   if (mpi_rank == 0) fprintf(file_out, "X Y Z Color\n");
 
   for (int ipass = 0; ipass < npass; ++ipass) {
-    int mpart = std::min(LPART, max_points - ilast);
+    int mpart = std::min(LPART, max_points - ilast+1);
     int i0 = ilast;
     int i1 = i0 + mpart;
     ilast = i1;
 
     memset(&x_temp[0][0], 0, mpart*(MAX_D+1)*sizeof(dfloat));
     for (int ii=0; ii < npart; ++ii) {
-      if (i0 < partid[ii] && partid[ii] <= i1) {
+      if (i0 <= partid[ii] && partid[ii] < i1) {
         int i = partid[ii]-i0;
         for (int j = 0; j < D; ++j) {
           x_temp[i][j] = x[ii][j];       // coordinates
