@@ -30,7 +30,7 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
   dfloat *elx[3] = {mesh->x, mesh->y, mesh->z};
 
   // element dimensions
-  dlong n1[3] = {mesh->N, mesh->N, mesh->N};
+  dlong n1[3] = {mesh->N+1, mesh->N+1, mesh->N+1};
 
   dlong m1[3] = {2*n1[0], 2*n1[1], 2*n1[2]};
 
@@ -107,10 +107,18 @@ void interp_nfld(dfloat *fld, dlong nfld,
         if (dist2[in] > 10*handle->tol) {
           nfail += 1;
           //if (nfail < 5) write(6,'(a,1p4e15.7)')     ' WARNING: point on boundary or outside the mesh xy[z]d^2: ',     xp(in),yp(in),zp(in),rwk(in,1)
+          if (nfail < 5){
+            std::cerr << " WARNING: point on boundary or outside the mesh xy[z]d^2: "
+                      << x[0][in*x_stride[0]] << "," << x[1][in*x_stride[1]] << ", " << x[2][in*x_stride[2]] << ", " << dist2[in] << std::endl;
+          }
         }
       } else if (code[in] == 2) {
         nfail += 1;
         //if (nfail < 5) write(6,'(a,1p3e15.7)')        ' WARNING: point not within mesh xy[z]: !',        xp(in),yp(in),zp(in)
+        if (nfail < 5){
+          std::cerr << " WARNING: point not within mesh xy[z]d^2: "
+                    << x[0][in*x_stride[0]] << "," << x[1][in*x_stride[1]] << ", " << x[2][in*x_stride[2]] << std::endl;
+        }
       }
     }
   }

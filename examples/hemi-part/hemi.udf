@@ -109,7 +109,7 @@ void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
 //     Update particle position and velocity history
        x[i][k] += dt*(c1*u1[i][k] + c2*vh[i][0][k] + c3*vh[i][1][k]);
        vh[i][1][k] = vh[i][0][k];
-       vh[i][0][k] = u1[k][i];
+       vh[i][0][k] = u1[i][k];
     }
   }
 }
