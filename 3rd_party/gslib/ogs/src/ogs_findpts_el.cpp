@@ -19,17 +19,17 @@ void ogs_findpts_el_eval_2(
   const unsigned pn, const double *const in, struct findpts_el_data_2 *const fd)
 {
   const unsigned nr=fd->n[0],ns=fd->n[1];
-  device_t device = platform->device;
+  occa::device device = platform->device;
 
   occa::memory d_out_base = device.malloc(out_stride*pn);
   occa::memory   d_r_base = device.malloc(  r_stride*pn);
   d_r_base.copyFrom(r_base);
-  occa::memory d_in = device.malloc(nr*ns, sizeof(double));
+  occa::memory d_in = device.malloc(nr*ns*sizeof(double));
   d_in.copyFrom(in);
 
-  occa::memory d_lag_data_0 = device.malloc(nr, sizeof(double));
+  occa::memory d_lag_data_0 = device.malloc(nr*sizeof(double));
   d_lag_data_0.copyFrom(fd->lag_data[0]);
-  occa::memory d_lag_data_1 = device.malloc(ns, sizeof(double));
+  occa::memory d_lag_data_1 = device.malloc(ns*sizeof(double));
   d_lag_data_1.copyFrom(fd->lag_data[1]);
 
   ogs::findpts_el_eval_2(d_out_base, out_stride,
@@ -58,14 +58,14 @@ void ogs_findpts_el_eval_3(
   occa::memory d_out_base = device.malloc(out_stride*pn);
   occa::memory   d_r_base = device.malloc(  r_stride*pn);
   d_r_base.copyFrom(r_base);
-  occa::memory d_in = device.malloc(nr*ns*nt, sizeof(double));
+  occa::memory d_in = device.malloc(nr*ns*nt*sizeof(double));
   d_in.copyFrom(in);
 
-  occa::memory d_lag_data_0 = device.malloc(nr, sizeof(double));
+  occa::memory d_lag_data_0 = device.malloc(nr*sizeof(double));
   d_lag_data_0.copyFrom(fd->lag_data[0]);
-  occa::memory d_lag_data_1 = device.malloc(ns, sizeof(double));
+  occa::memory d_lag_data_1 = device.malloc(ns*sizeof(double));
   d_lag_data_1.copyFrom(fd->lag_data[1]);
-  occa::memory d_lag_data_2 = device.malloc(nt, sizeof(double));
+  occa::memory d_lag_data_2 = device.malloc(nt*sizeof(double));
   d_lag_data_2.copyFrom(fd->lag_data[2]);
 
   ogs::findpts_el_eval_3(d_out_base, d_out_stride,

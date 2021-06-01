@@ -18,10 +18,10 @@
 #include "crystal.h"
 #include "sarray_transfer.h"
 #include "sarray_sort.h"
-#include "ogs_findpts_el.h"
 #include "findpts_el.h"
 #include "findpts_local.h"
 #include "findpts.h"
+#include "ogs_findpts_el.h"
 
 #include "ogs_findpts.h"
 

@@ -1,5 +1,5 @@
-#ifndef FINDPTS_LOCAL_H
-#define FINDPTS_LOCAL_H
+#ifndef OGS_FINDPTS_H
+#define OGS_FINDPTS_H
 
 #if !defined(MEM_H) || !defined(FINDPTS_H) || !defined(FINDPTS_LOCAL_H) || !defined(FINDPTS_EL_H) || !defined(OBBOX_H)
 #warning "ogs_findpts.h" requires "mem.h", "findpts.h", "findpts_local.h", "findpts_el.h", "obbox.h"
