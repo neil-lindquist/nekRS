@@ -24,10 +24,10 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
   int k  = gcount; // total # particles emitted
   int l  = lcount; // Index into local particle array
 
-  int nw = 200;
+  int nw = 100;
 
   for (int line = 0; line < 4; ++line) { // 4 lines at different heights
-    dfloat xp = -2.5;
+    dfloat xp = -1.5;
     dfloat zp = .05 + line*0.075;
     for (int part = 0; part < nw; ++part) { // nw points on a wire
       dfloat dy =  1.0*2/(nw-1);
