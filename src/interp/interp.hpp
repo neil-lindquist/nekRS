@@ -3,41 +3,51 @@
 
 #include "nrs.hpp"
 
+// Contains data for doing interpolations on a particular mesh
 struct interp_data {
   nrs_t *nrs;
-  double tol;
+  double newton_tol;
   unsigned D;
   void *findpts;
 };
 
-// input:
-//   nrs   ... nekRS configuration data
-//   tol   ... tolerance newton solve (use 0 for default)
-//
-// return:
-//   pointer to interpolation handles
-struct interp_data* interp_setup(nrs_t *nrs, double tol);
+// Does the setup to interpolate fields on the given mesh
+//   nrs            ... nekRS configuration data
+//   newton_tol     ... tolerance for newton solve (use 0 for default)
+// returns pointer to the interpolation handle
+struct interp_data* interp_setup(nrs_t *nrs, double newton_tol);
+
+// Frees a previously setup interpolation handle
 void interp_free(struct interp_data *handle);
 
-// input:
-//   fld            ... source field(s)
+// Interpolates the field at the given points
+//   fld            ... source field(s) (dfloat[nrs->fieldOffset*nfld])
 //   nfld           ... number of fields
-//   x              ... interpolation points dim[n,D]
+//   x              ... array of pointers to the interpolation points (dfloat[D][n])
+//   x_stride       ... array of the strides to the interpolation points (dlong[D])
 //   n              ... number of points
-//   iwk            ... integer working array to hold point location information - dim[3,nmax]
-//   rwk            ... real working array to hold the point local information - dim[D+1,nmax]
-//   nmax           ... leading dimension of iwk and rwk
-//   if_located_pts ... wheather to locate interpolation points (proc,el,r,s,t)
+//   iwk            ... integer working array to hold point location information (dlong[3][nmax])
+//   rwk            ... real working array to hold the point local information (dlong[D+1][nmax])
+//   nmax           ... leading dimension of iwk and rwk, at least as large as n
+//   if_need_pts    ... wheather the interpolation points need to be located (proc,el,r,s,t)
 //   handle         ... handle
-//
-// output:
-//   out            ... interpolation value(s) dim [nfld,n]
+//   out            ... array of pointers to the output arrays (dfloat[D][n])
+//   out_stride     ... array of the strides of the output arrays (dlong[D])
 void interp_nfld(dfloat *fld, dlong nfld,
-                 dfloat *x[], dlong x_stride[],
-                 dlong n, dlong *iwk, dfloat *rwk,
-                 dlong nmax, bool if_locate_pts,
-                 struct interp_data *handle,
-                 dfloat *out, bool if_trans_out = false);
+                 dfloat *x[], dlong x_stride[], dlong n,
+                 dlong *iwk, dfloat *rwk, dlong nmax,
+                 bool if_need_pts, struct interp_data *handle,
+                 dfloat *out[], dlong out_stride[]);
 
+// Interpolates the velocity fields at the give points
+//   uvw_base       ... array of pointers to the velocity output arrays (dfloat[D][n])
+//   uvw_stride     ... array of the strides of the velocity output arrays (dlong[D])
+//   xyz_base       ... array of pointers to the coordinate arrays (dfloat[D][n])
+//   xyz_stride     ... array of the strides of the coordinate arrays (dlong[D])
+//   n              ... number of points to interpolate
+//   nrs            ... the NekRS data
+void interp_velocity(dfloat *uvw_base[], dlong uvw_stride[],
+                     dfloat *xyz_base[], dlong xyz_stride[],
+                     int n, nrs_t *nrs);
 
 #endif

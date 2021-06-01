@@ -54,35 +54,25 @@ void particle_init(dfloat x[LPART][MAX_D], int partid[LPART], dfloat partv[LPART
   npart  = std::max(npart,lcount);
 }
 
-// could be added to interp API
-void interp_v(dfloat uvw[LPART][MAX_D], dfloat xyz[LPART][MAX_D], int npart,
-              nrs_t *nrs) {
-
-  static dfloat rwork[LPART*(MAX_D+1)];
-  static int    iwork[LPART*3];
-
-  static interp_data *interp_handle;
-  static bool called = false;
-  if (!called) {
-    called = true;
-    interp_handle = interp_setup(nrs, 0);
-  }
-
-  dfloat *x_base[3];
-  x_base[0] = &xyz[0][0];
-  x_base[1] = x_base[0]+1;
-  x_base[2] = x_base[0]+2;
-  dlong x_stride[3] = {MAX_D, MAX_D, MAX_D};
-
-  interp_nfld(nrs->U, nrs->dim, x_base, x_stride, npart,
-              iwork, rwork, LPART, true, interp_handle,
-              &uvw[0][0], true); // transpose output to match layout of uvw
-}
 
 void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
                          dfloat partv[LPART], int npart, nrs_t *nrs, int tstep) {
 
-  double c1, c2, c3;
+  static dfloat u1[LPART][MAX_D];
+
+  dfloat *u_base[MAX_D], *x_base[MAX_D];
+  dlong u_stride[MAX_D], x_stride[MAX_D];
+  for (int i = 0; i < D; ++i) {
+    u_base[i]   = &u1[0][D];
+    u_stride[i] = MAX_D;
+    x_base[i]   = &x[0][D];
+    x_stride[i] = MAX_D;
+  }
+
+  interp_v(u_base, u_stride, x_base, x_stride, npart, nrs);
+
+  dlong D = nrs->dim;
+  double c1, c2, c3, dt = nrs->dt[0];
   if (tstep ==0) { // AB1
     memset(vh, 0, 2*LPART*MAX_D*sizeof(dfloat));
     c1 = 1.0;
@@ -97,12 +87,6 @@ void particle_advect_std(dfloat x[LPART][MAX_D], dfloat vh[LPART][2][MAX_D],
     c2 = -16.0 / 12.0;
     c3 =   5.0 / 12.0;
   }
-
-  static dfloat u1[LPART][MAX_D];
-  interp_v(u1, x, npart, nrs);
-
-  dfloat dt = nrs->dt[0];
-  dlong D = nrs->dim;
 
   for (int i=0; i < LPART; ++i) {
     for (int k=0; k < D; ++k) {

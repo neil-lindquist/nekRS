@@ -6,16 +6,11 @@
 
 #include "interp.hpp"
 
-// input:
-//   nrs   ... nekRS configuration data
-//   tol   ... tolerance newton solve (use 0 for default)
-//
-// return:
-//   pointer to interpolation handles
-struct interp_data* interp_setup(nrs_t *nrs, double tol) {
+struct interp_data* interp_setup(nrs_t *nrs, double newton_tol)
+{
 
-  if (tol < 5e-13) {
-    tol = 5e-13;
+  if (newton_tol < 5e-13) {
+    newton_tol = 5e-13;
   }
   int npt_max = 128;
   int bb_tol = 0.01;
@@ -41,11 +36,11 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
   MPI_Comm comm = platform_t::getInstance()->comm.mpiComm;
 
   void *findpts_handle = ogsFindptsSetup(D, comm, elx, n1, nelm, m1, bb_tol,
-                                         hash_size, hash_size, npt_max, tol);
+                                         hash_size, hash_size, npt_max, newton_tol);
 
   struct interp_data *handle = new interp_data();
   handle->nrs = nrs;
-  handle->tol = tol;
+  handle->newton_tol = newton_tol;
   handle->D = D;
   handle->findpts = findpts_handle;
 
@@ -53,30 +48,18 @@ struct interp_data* interp_setup(nrs_t *nrs, double tol) {
 }
 
 
-void interp_free(struct interp_data *handle) {
+void interp_free(struct interp_data *handle)
+{
   ogsFindptsFree((ogs_findpts_t*)handle->findpts);
   delete handle;
 }
 
-// input:
-//   fld            ... source field(s)
-//   nfld           ... number of fields
-//   x              ... interpolation points dim[n,D]
-//   n              ... number of points
-//   iwk            ... integer working array to hold point location information - dim[3,nmax]
-//   rwk            ... real working array to hold the point local information - dim[D+1,nmax]
-//   nmax           ... leading dimension of iwk and rwk
-//   if_located_pts ... wheather to locate interpolation points (proc,el,r,s,t)
-//   handle         ... handle
-//
-// output:
-//   out            ... interpolation value(s) dim [nfld,n]
 void interp_nfld(dfloat *fld, dlong nfld,
-                 dfloat *x[], dlong x_stride[],
-                 dlong n, dlong *iwk, dfloat *rwk,
-                 dlong nmax, bool if_locate_pts,
-                 struct interp_data *handle,
-                 dfloat *out, bool if_trans_out) {
+                 dfloat *x[], dlong x_stride[], dlong n,
+                 dlong *iwk, dfloat *rwk, dlong nmax,
+                 bool if_need_pts, struct interp_data *handle,
+                 dfloat *out[], dlong out_stride[])
+{
 
   assert(n <= nmax);
 
@@ -89,7 +72,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
   dlong D = handle->nrs->dim;
 
   unsigned nfail = 0;
-  if (if_locate_pts) {
+  if (if_need_pts) {
     // findpts takes strides in terms of bytes, but interp_nfld takes strides in terms of elements
     dlong *x_stride_bytes = (dlong*)malloc(D*sizeof(dlong));
     for (int i = 0; i < D; ++i) x_stride_bytes[i] = x_stride[i]*sizeof(dfloat);
@@ -104,7 +87,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
 
     for (int in = 0; in < n; ++in) {
       if (code[in] == 1) {
-        if (dist2[in] > 10*handle->tol) {
+        if (dist2[in] > 10*handle->newton_tol) {
           nfail += 1;
           //if (nfail < 5) write(6,'(a,1p4e15.7)')     ' WARNING: point on boundary or outside the mesh xy[z]d^2: ',     xp(in),yp(in),zp(in),rwk(in,1)
           if (nfail < 5){
@@ -125,17 +108,12 @@ void interp_nfld(dfloat *fld, dlong nfld,
 
   for (int ifld = 0; ifld < nfld; ++ifld) {
      dlong in_offset  = ifld*handle->nrs->fieldOffset;
-     dlong out_offset = ifld*n;
-     dlong out_stride = 1;
-     if (if_trans_out) {
-       out_offset = ifld;
-       out_stride = nfld;
-     }
-     ogsFindptsEval(out+out_offset, out_stride*sizeof(dfloat),
-                    code,           1*sizeof(dlong),
-                    proc,           1*sizeof(dlong),
-                    el,             1*sizeof(dlong),
-                    r,              D*sizeof(dfloat),
+
+     ogsFindptsEval(out[ifld], out_stride[ifld]*sizeof(dfloat),
+                    code,      1               *sizeof(dlong),
+                    proc,      1               *sizeof(dlong),
+                    el,        1               *sizeof(dlong),
+                    r,         D               *sizeof(dfloat),
                     n, fld+in_offset, (ogs_findpts_t*)handle->findpts);
   }
 
@@ -146,4 +124,33 @@ void interp_nfld(dfloat *fld, dlong nfld,
 //1     format('   total number of points = ',i12,/,'   failed = '
 // &         ,i12,/,' done :: intp_nfld')
 //  endif
+}
+
+
+void interp_velocity(dfloat *uvw_base[], dlong uvw_stride[],
+                     dfloat *xyz_base[], dlong xyz_stride[],
+                     int n, nrs_t *nrs)
+{
+  dlong D = nrs->dim;
+  void *workspace = malloc(sizeof(dfloat)*n*(D+1) + sizeof(int)*n*3);
+  dfloat *rwork = (dfloat*)workspace;
+  int    *iwork = (int*)(workspace + sizeof(dfloat)*n*(D+1));
+
+  // the interp handle is cached to avoid repeated setups and frees
+  static interp_data *interp_handle;
+  static bool called = false;
+  if (!called || interp_handle->nrs != nrs) {
+    if (called) {
+      interp_free(interp_handle);
+    }
+    called = true;
+    interp_handle = interp_setup(nrs, 0);
+  }
+
+  interp_nfld(nrs->U, nrs->dim,
+              x_base, x_stride, npart,
+              iwork, rwork, LPART, true, interp_handle,
+              u_base, u_stride);
+
+  free(workspace);
 }
