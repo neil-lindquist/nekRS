@@ -6,9 +6,11 @@
 #include "ogstypes.h"
 #include "ogs.hpp"
 #include "ogsKernels.hpp"
+extern "C" {
 #include "name.h"
 #include "poly.h"
 #include "findpts_el.h"
+}
 #include "platform.hpp"
 #include "ogs_findpts_el.h"
 
