@@ -132,7 +132,7 @@ void interp_velocity(dfloat *uvw_base[], dlong uvw_stride[],
                      int n, nrs_t *nrs)
 {
   dlong D = nrs->dim;
-  void *workspace = malloc(sizeof(dfloat)*n*(D+1) + sizeof(int)*n*3);
+  char *workspace = (char*)malloc(sizeof(dfloat)*n*(D+1) + sizeof(int)*n*3);
   dfloat *rwork = (dfloat*)workspace;
   int    *iwork = (int*)(workspace + sizeof(dfloat)*n*(D+1));
 
@@ -148,9 +148,9 @@ void interp_velocity(dfloat *uvw_base[], dlong uvw_stride[],
   }
 
   interp_nfld(nrs->U, nrs->dim,
-              x_base, x_stride, npart,
-              iwork, rwork, LPART, true, interp_handle,
-              u_base, u_stride);
+              xyz_base, xyz_stride, n,
+              iwork, rwork, n, true, interp_handle,
+              uvw_base, uvw_stride);
 
   free(workspace);
 }
