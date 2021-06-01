@@ -33,6 +33,7 @@ SOFTWARE.
 #include <string.h>
 
 #include "gslib.h"
+#include "ogs_findpts.h"
 
 #include "ogstypes.h"
 
@@ -156,4 +157,42 @@ void ogsHostFindptsEval_3(
                    el_base,   el_stride,
                     r_base,    r_stride,
                  npt, in, fd);
+}
+
+void ogsDevFindptsEval_2(
+        dfloat *const  out_base, const dlong  out_stride,
+  const dlong  *const code_base, const dlong code_stride,
+  const dlong  *const proc_base, const dlong proc_stride,
+  const dlong  *const   el_base, const dlong   el_stride,
+  const dfloat *const    r_base, const dlong    r_stride,
+  const dlong npt, const dfloat *const in, struct findpts_data_2 *const fd) {
+
+  assert(sizeof(dfloat) == sizeof(double));
+  assert(sizeof(dlong) == sizeof(uint));
+
+  ogs_findpts_eval_2( out_base,  out_stride,
+                     code_base, code_stride,
+                     proc_base, proc_stride,
+                       el_base,   el_stride,
+                        r_base,    r_stride,
+                     npt, in, fd);
+}
+
+void ogsDevFindptsEval_3(
+        dfloat *const  out_base, const dlong  out_stride,
+  const dlong  *const code_base, const dlong code_stride,
+  const dlong  *const proc_base, const dlong proc_stride,
+  const dlong  *const   el_base, const dlong   el_stride,
+  const dfloat *const    r_base, const dlong    r_stride,
+  const dlong npt, const dfloat *const in, struct findpts_data_3 *const fd) {
+
+  assert(sizeof(dfloat) == sizeof(double));
+  assert(sizeof(dlong) == sizeof(uint));
+
+  ogs_findpts_eval_3( out_base,  out_stride,
+                     code_base, code_stride,
+                     proc_base, proc_stride,
+                       el_base,   el_stride,
+                        r_base,    r_stride,
+                     npt, in, fd);
 }

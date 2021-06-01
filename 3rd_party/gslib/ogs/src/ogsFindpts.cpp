@@ -112,15 +112,15 @@ void ogsFindptsEval(
   assert(sizeof(dfloat) == sizeof(double));
   assert(sizeof(dlong) == sizeof(uint));
 
-  double *out_copy = malloc(out_stride*npt*sizeof(double));
+  dfloat *out_copy = (dfloat*)malloc(out_stride*npt*sizeof(double));
 
   if (fd->D == 2) {
-    ogs_findpts_eval_2( out_copy,  out_stride,
-                       code_base, code_stride,
-                       proc_base, proc_stride,
-                         el_base,   el_stride,
-                          r_base,    r_stride,
-                       npt, in, (findpts_data_2*)fd->findpts_data);
+    ogsDevFindptsEval_2( out_copy,  out_stride,
+                        code_base, code_stride,
+                        proc_base, proc_stride,
+                          el_base,   el_stride,
+                           r_base,    r_stride,
+                        npt, in, (findpts_data_2*)fd->findpts_data);
     ogsHostFindptsEval_2( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
@@ -128,12 +128,12 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_2*)fd->findpts_data);
   } else {
-    ogs_findpts_eval_3( out_copy,  out_stride,
-                       code_base, code_stride,
-                       proc_base, proc_stride,
-                         el_base,   el_stride,
-                          r_base,    r_stride,
-                       npt, in, (findpts_data_3*)fd->findpts_data);
+    ogsDevFindptsEval_3( out_copy,  out_stride,
+                        code_base, code_stride,
+                        proc_base, proc_stride,
+                          el_base,   el_stride,
+                           r_base,    r_stride,
+                        npt, in, (findpts_data_3*)fd->findpts_data);
     ogsHostFindptsEval_3( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
@@ -141,7 +141,7 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_3*)fd->findpts_data);
   }
-  printf("Did findpts_eval comparison w/ %d points\n", npt)
+  printf("Did findpts_eval comparison w/ %d points\n", npt);
   for (int i = 0; i < npt; ++i) {
     if (out_base[i*out_stride] != out_copy[i*out_stride]) {
       printf("    elt %d is: %f != %f\n", i, out_base[i*out_stride], out_copy[i*out_stride]);
