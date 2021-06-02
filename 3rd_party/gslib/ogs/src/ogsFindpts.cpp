@@ -114,6 +114,11 @@ void ogsFindptsEval(
 
   dfloat *out_copy = (dfloat*)malloc(out_stride*npt*sizeof(double));
 
+  // Set initial value so that we can detect out not being updating
+  for (int i = 0; i < npt; ++i) {
+    *(dfloat*)((char*)out_copy + i*out_stride) = 3.141592653589;
+    *(dfloat*)((char*)out_base + i*out_stride) = 2.718281828;
+  }
   if (fd->D == 2) {
     ogsDevFindptsEval_2( out_copy,  out_stride,
                         code_base, code_stride,
@@ -141,10 +146,12 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_3*)fd->findpts_data);
   }
-  printf("Did findpts_eval comparison w/ %d points\n", npt);
+  printf("Did findpts_eval comparison w/ %d points and out_stride of %d\n", npt, out_stride);
   for (int i = 0; i < npt; ++i) {
-    if (out_base[i*out_stride] != out_copy[i*out_stride]) {
-      printf("    elt %d is: %e != %e (diff %e)\n", i, out_base[i*out_stride], out_copy[i*out_stride], out_base[i*out_stride]-out_copy[i*out_stride]);
+    dfloat out_copy_i = *(dfloat*)((char*)out_copy + out_stride*i);
+    dfloat out_base_i = *(dfloat*)((char*)out_base + out_stride*i);
+    if (out_base_i != out_copy_i) {
+      printf("    elt %d is: %e != %e (diff %e)\n", i, out_base_i, out_copy_i, out_base_i-out_copy_i);
     }
   }
   free(out_copy);
