@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include <cassert>
+#include <cstdlib>
 #include "ogstypes.h"
 #include "ogs.hpp"
 #include "ogsInterface.h"
@@ -146,12 +147,12 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_3*)fd->findpts_data);
   }
-  printf("Did findpts_eval comparison w/ %d points and out_stride of %d\n", npt, out_stride);
+  //printf("Did findpts_eval comparison w/ %d points and out_stride of %d\n", npt, out_stride);
   for (int i = 0; i < npt; ++i) {
     dfloat out_copy_i = *(dfloat*)((char*)out_copy + out_stride*i);
     dfloat out_base_i = *(dfloat*)((char*)out_base + out_stride*i);
-    if (out_base_i != out_copy_i) {
-      printf("    elt %d is: %e != %e (diff %e)\n", i, out_base_i, out_copy_i, out_base_i-out_copy_i);
+    if (std::abs(out_base_i - out_copy_i) > std::abs(out_base_i)*1e-14) {
+      printf("WARNING: ogs_findpts_eval varied at point %d: %e != %e (diff %e)\n", i, out_base_i, out_copy_i, out_base_i-out_copy_i);
     }
   }
   free(out_copy);

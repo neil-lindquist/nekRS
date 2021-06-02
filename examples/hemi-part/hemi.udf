@@ -181,7 +181,7 @@ void my_particle_generator(nrs_t *nrs, int tstep) {
   static dfloat old_vel[LPART][2][MAX_D];
   static dfloat partv[LPART];
 
-  bool ifnewpart = nrs->isOutputStep;
+  bool ifnewpart = nrs->isOutputStep || tstep == 1;
   bool ifoutpart = nrs->isOutputStep;
 
   if (ifnewpart) particle_init(pts, partid,  partv, npart);
