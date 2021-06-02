@@ -144,7 +144,8 @@ void ogsFindptsEval(
   printf("Did findpts_eval comparison w/ %d points\n", npt);
   for (int i = 0; i < npt; ++i) {
     if (out_base[i*out_stride] != out_copy[i*out_stride]) {
-      printf("    elt %d is: %f != %f\n", i, out_base[i*out_stride], out_copy[i*out_stride]);
+      printf("    elt %d is: %e != %e (diff %e)\n", i, out_base[i*out_stride], out_copy[i*out_stride], out_base[i*out_stride]-out_copy[i*out_stride]);
     }
   }
+  free(out_copy);
 }
