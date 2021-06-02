@@ -24,12 +24,17 @@ void ogs_findpts_el_eval_2(
   const unsigned nr=fd->n[0],ns=fd->n[1];
   occa::device device = platform->device;
 
+  assert(nr <= MAX_GLL_N);
+  assert(ns <= MAX_GLL_N);
+  assert(nt <= MAX_GLL_N);
+
   assert(out_stride % sizeof(double) == 0);
   const unsigned d_out_stride = out_stride / sizeof(double);
   assert(r_stride % sizeof(double) == 0);
   const unsigned d_r_stride = r_stride / sizeof(double);
 
   occa::memory d_out_base = device.malloc(out_stride*pn);
+  d_out_base.copyFrom(out_base);
   occa::memory   d_r_base = device.malloc(  r_stride*pn);
   d_r_base.copyFrom(r_base);
   occa::memory d_in = device.malloc(nr*ns*sizeof(double));
@@ -58,12 +63,17 @@ void ogs_findpts_el_eval_3(
   const unsigned nr=fd->n[0],ns=fd->n[1],nt=fd->n[2];
   device_t device = platform->device;
 
+  assert(nr <= MAX_GLL_N);
+  assert(ns <= MAX_GLL_N);
+  assert(nt <= MAX_GLL_N);
+
   assert(out_stride % sizeof(double) == 0);
   const unsigned d_out_stride = out_stride / sizeof(double);
   assert(r_stride % sizeof(double) == 0);
   const unsigned d_r_stride = r_stride / sizeof(double);
 
   occa::memory d_out_base = device.malloc(out_stride*pn);
+  d_out_base.copyFrom(out_base);
   occa::memory   d_r_base = device.malloc(  r_stride*pn);
   d_r_base.copyFrom(r_base);
   occa::memory d_in = device.malloc(nr*ns*nt*sizeof(double));

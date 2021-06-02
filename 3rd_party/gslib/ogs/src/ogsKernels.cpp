@@ -164,7 +164,7 @@ namespace ogs {
 void ogs::initKernels(MPI_Comm comm, occa::device device) {
 
   ogs::kernelInfo["defines/ " "p_blockSize"] = BLOCKSIZE;
-  ogs::kernelInfo["defines/ " "MAX_LAGRANGE_DEGREE"] = MAX_LAGRANGE_DEGREE;
+  ogs::kernelInfo["defines/ " "MAX_GLL_N"] = MAX_GLL_N;
   ogs::kernelInfo["defines/ " "dlong"] = dlongString;
   ogs::kernelInfo["defines/ " "hlong"] = hlongString;
 

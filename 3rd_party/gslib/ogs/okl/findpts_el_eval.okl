@@ -4,15 +4,11 @@ void lagrange_eval(double *p, double *data,
                    unsigned int i)
 {
   if (i < n) {
-
     const double *z=data, *w=z+n;
-    double *d = data+2*n;
     double p_i = 1;
-
-    d[i] = 2*(x-z[i]);
-    @barrier("local");
     for (unsigned int j = 0; j < n; ++j) {
-      p_i *= j==i ? 1:d[j];
+      double d_j = 2*(x-z[j]);
+      p_i *= j==i ? 1 : d_j;
     }
     p[i] = w[i] * p_i;
   }
@@ -31,10 +27,9 @@ void lagrange_eval(double *p, double *data,
 
   for (unsigned int i = 0; i<pn; ++i; @outer){
 
-    @shared double wtr[MAX_LAGRANGE_DEGREE];
-    @shared double wts[MAX_LAGRANGE_DEGREE];
-    @shared double slice[MAX_LAGRANGE_DEGREE];
-    @shared double sums[MAX_LAGRANGE_DEGREE];
+    @shared double wtr[MAX_GLL_N];
+    @shared double wts[MAX_GLL_N];
+    @shared double sums[MAX_GLL_N];
 
     const double *r = r_base + r_stride*i;
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
@@ -43,6 +38,9 @@ void lagrange_eval(double *p, double *data,
     }
 
     // tensor_mxm(slice, nr, in, ns, wts, pn)
+    // tensor_i1(wtr, nr, slice)
+
+    // out[i] = sum_j sum_k wts[j]*wtr[k]*in[j + k*nr]
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < nr) {
         double sum = 0;
@@ -51,55 +49,52 @@ void lagrange_eval(double *p, double *data,
         for (unsigned int k = 0; k < ns; ++k) {
           sum += in_j[k*nr] * wts[k];
         }
-        slice[j] = sum;
+        sums[j] = wtr[j]*sum;
+      } else {
+        sums[j] = 0.0;
       }
     }
 
-    // tensor_i1(wtr, nr, slice)
     double *out = out_base + out_stride*i;
-    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
-      if (j < nr) {
-        sums[j] = wtr[j]*slice[j];
-      } else {
-        sums[0] = 0;
-      }
 
-// max_GLL_N is assumed to be at most 256
-#if MAX_LAGRANGE_DEGREE>128
-      if (j < 128 && j + 125 < nr) {
+// MAX_GLL_N is assumed to be at most 256
+#if MAX_GLL_N>128
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      if (j < 128 && j + 128 < nr) {
         sums[j] += sums[j+128];
       }
-      @barrier("local");
+    }
 #endif
-
-#if MAX_LAGRANGE_DEGREE>64
+#if MAX_GLL_N>64
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 64 && j + 64 < nr) {
         sums[j] += sums[j+64];
       }
-      @barrier("local");
+    }
 #endif
-
-      // assumes warp/vector size is at least 32
+#if MAX_GLL_N>32
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 32 && j + 32 < nr) {
         sums[j] += sums[j+32];
       }
-      @barrier("local");
+    }
+#endif
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 16 && j + 16 < nr) {
         sums[j] += sums[j+16];
       }
-      @barrier("local");
-      if (j < 8 && j + 8 < nr) {
-        sums[j] += sums[j+8];
-      }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 4 && j + 4 < nr) {
         sums[j] += sums[j+4];
       }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 2 && j + 2 < nr) {
         sums[j] += sums[j+2];
       }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j == 0 && 1 < nr) {
         *out = sums[0] + sums[1];
       }
@@ -118,11 +113,10 @@ void lagrange_eval(double *p, double *data,
 
   for (unsigned int i = 0; i<pn; ++i; @outer){
 
-    @shared double wtr[MAX_LAGRANGE_DEGREE];
-    @shared double wts[MAX_LAGRANGE_DEGREE];
-    @shared double wtt[MAX_LAGRANGE_DEGREE];
-    @shared double slice[MAX_LAGRANGE_DEGREE*MAX_LAGRANGE_DEGREE];
-    @shared double sums[MAX_LAGRANGE_DEGREE]; // could be overlaped with wtt
+    @shared double wtr[MAX_GLL_N];
+    @shared double wts[MAX_GLL_N];
+    @shared double wtt[MAX_GLL_N];
+    @shared double sums[MAX_GLL_N]; // could be overlaped with wtt
 
     const double *r = r_base + r_stride*i;
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
@@ -132,72 +126,70 @@ void lagrange_eval(double *p, double *data,
     }
 
     // tensor_mxm(slice, nr*ns, in, nt, wtt, pn)
-    for (unsigned int jj = 0; jj < inner_size; ++jj; @inner) {
-      if (jj < nr) {
-        for (unsigned int j = jj; j < nr*ns; j += nr) {
-          double sum = 0;
-          const double *in_j = in+j;
+    // tensor_i2(wtr, nr, wts, ns, slice, sums)
+    //   computes wtr^T * slice * wts w/ wtr and wts vectors, and slice matrix
 
-          for (unsigned int k = 0; k < nt; ++k) {
-            sum += in_j[k*nr*ns] * wtt[k];
+    // out[i] = sum_j sum_k sum_l wts[j]*wtr[k]*wtt[l]*in[j + k*nr + l*nr*ns]
+    //        = sum_j wts[j] * sum_k wtr[k] * sum_l wtt[l]*in[j + k*nr + l*nr*ns]
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
+      if (j < nr) {
+        double sum_j = 0;
+        const double *in_j = in+j;
+        for (unsigned int k = 0; k < ns; ++k) {
+          double sum_k = 0;
+          const double *in_jk = in_j+k*nr;
+
+          for (unsigned int l = 0; l < nt; ++l) {
+            sum_k += in_jk[l*nr*ns] * wtt[l];
           }
-          slice[j] = sum;
+          sum_j += wtr[k]*sum_k;
         }
+        sums[j] = wts[j]*sum_j;
+      } else {
+        sums[j] = 0.0;
       }
     }
 
-    // tensor_i2(wtr, nr, wts, ns, slice, sums)
-    // computes wtr^T * slice * wts
-    // w/ wtr and wts vectors, and slice matrix
     double *out = out_base + out_stride*i;
 
+// MAX_GLL_N is assumed to be at most 256
+#if MAX_GLL_N>128
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
-      if (j < nr) {
-        double l_sum = 0;
-        for (unsigned int k = 0; k < ns; ++k) {
-          l_sum = wtr[k]*slice[j*nr + k];
-        }
-        sums[j] = wts[j] * l_sum;
-      } else {
-        sums[0] = 0;
-      }
-
-// MAX_LAGRANGE_DEGREE is assumed to be at most 256
-#if MAX_LAGRANGE_DEGREE>128
-      if (j < 128 && j + 125 < nr) {
+      if (j < 128 && j + 128 < nr) {
         sums[j] += sums[j+128];
       }
-      @barrier("local");
+    }
 #endif
-
-#if MAX_LAGRANGE_DEGREE>64
+#if MAX_GLL_N>64
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 64 && j + 64 < nr) {
         sums[j] += sums[j+64];
       }
-      @barrier("local");
+    }
 #endif
-
-      // assumes warp/vector size is at least 32
+#if MAX_GLL_N>32
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 32 && j + 32 < nr) {
         sums[j] += sums[j+32];
       }
-      @barrier("local");
+    }
+#endif
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 16 && j + 16 < nr) {
         sums[j] += sums[j+16];
       }
-      @barrier("local");
-      if (j < 8 && j + 8 < nr) {
-        sums[j] += sums[j+8];
-      }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 4 && j + 4 < nr) {
         sums[j] += sums[j+4];
       }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < 2 && j + 2 < nr) {
         sums[j] += sums[j+2];
       }
-      @barrier("local");
+    }
+    for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j == 0 && 1 < nr) {
         *out = sums[0] + sums[1];
       }
