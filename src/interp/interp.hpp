@@ -8,7 +8,7 @@ struct interp_data {
   nrs_t *nrs;
   double newton_tol;
   unsigned D;
-  void *findpts;
+  ogs_findpts_t *findpts;
 };
 
 // Does the setup to interpolate fields on the given mesh

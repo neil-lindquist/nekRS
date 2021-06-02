@@ -35,8 +35,8 @@ struct interp_data* interp_setup(nrs_t *nrs, double newton_tol)
 
   MPI_Comm comm = platform_t::getInstance()->comm.mpiComm;
 
-  void *findpts_handle = ogsFindptsSetup(D, comm, elx, n1, nelm, m1, bb_tol,
-                                         hash_size, hash_size, npt_max, newton_tol);
+  ogs_findpts_t *findpts_handle = ogsFindptsSetup(D, comm, elx, n1, nelm, m1, bb_tol,
+                                                  hash_size, hash_size, npt_max, newton_tol);
 
   struct interp_data *handle = new interp_data();
   handle->nrs = nrs;
@@ -50,7 +50,7 @@ struct interp_data* interp_setup(nrs_t *nrs, double newton_tol)
 
 void interp_free(struct interp_data *handle)
 {
-  ogsFindptsFree((ogs_findpts_t*)handle->findpts);
+  ogsFindptsFree(handle->findpts);
   delete handle;
 }
 
@@ -82,7 +82,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
                r,     D*sizeof(dfloat),
                dist2, 1*sizeof(dfloat),
                x,     x_stride_bytes,
-               n, (ogs_findpts_t*)handle->findpts);
+               n, handle->findpts);
     free(x_stride_bytes);
 
     for (int in = 0; in < n; ++in) {
@@ -114,7 +114,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
                     proc,      1               *sizeof(dlong),
                     el,        1               *sizeof(dlong),
                     r,         D               *sizeof(dfloat),
-                    n, fld+in_offset, (ogs_findpts_t*)handle->findpts);
+                    n, fld+in_offset, handle->findpts);
   }
 
 //  nn(1) = iglsum(n,1)

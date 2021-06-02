@@ -83,18 +83,23 @@ void lagrange_eval(double *p, double *data,
       if (j < 32 && j + 32 < nr) {
         sums[j] += sums[j+32];
       }
+      @barrier("local");
       if (j < 16 && j + 16 < nr) {
         sums[j] += sums[j+16];
       }
+      @barrier("local");
       if (j < 8 && j + 8 < nr) {
         sums[j] += sums[j+8];
       }
+      @barrier("local");
       if (j < 4 && j + 4 < nr) {
         sums[j] += sums[j+4];
       }
+      @barrier("local");
       if (j < 2 && j + 2 < nr) {
         sums[j] += sums[j+2];
       }
+      @barrier("local");
       if (j == 0 && 1 < nr) {
         *out = sums[0] + sums[1];
       }
@@ -176,18 +181,23 @@ void lagrange_eval(double *p, double *data,
       if (j < 32 && j + 32 < nr) {
         sums[j] += sums[j+32];
       }
+      @barrier("local");
       if (j < 16 && j + 16 < nr) {
         sums[j] += sums[j+16];
       }
+      @barrier("local");
       if (j < 8 && j + 8 < nr) {
         sums[j] += sums[j+8];
       }
+      @barrier("local");
       if (j < 4 && j + 4 < nr) {
         sums[j] += sums[j+4];
       }
+      @barrier("local");
       if (j < 2 && j + 2 < nr) {
         sums[j] += sums[j+2];
       }
+      @barrier("local");
       if (j == 0 && 1 < nr) {
         *out = sums[0] + sums[1];
       }
