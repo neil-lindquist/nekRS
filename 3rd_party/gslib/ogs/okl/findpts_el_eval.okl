@@ -129,8 +129,8 @@ void lagrange_eval(double *p, double *data,
     // tensor_i2(wtr, nr, wts, ns, slice, sums)
     //   computes wtr^T * slice * wts w/ wtr and wts vectors, and slice matrix
 
-    // out[i] = sum_j sum_k sum_l wts[j]*wtr[k]*wtt[l]*in[j + k*nr + l*nr*ns]
-    //        = sum_j wts[j] * sum_k wtr[k] * sum_l wtt[l]*in[j + k*nr + l*nr*ns]
+    // out[i] = sum_j sum_k sum_l wtr[j]*wts[k]*wtt[l]*in[j + k*nr + l*nr*ns]
+    //        = sum_j wtr[j] * sum_k wts[k] * sum_l wtt[l]*in[j + k*nr + l*nr*ns]
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       if (j < nr) {
         double sum_j = 0;
@@ -142,9 +142,9 @@ void lagrange_eval(double *p, double *data,
           for (unsigned int l = 0; l < nt; ++l) {
             sum_k += in_jk[l*nr*ns] * wtt[l];
           }
-          sum_j += wtr[k]*sum_k;
+          sum_j += wts[k]*sum_k;
         }
-        sums[j] = wts[j]*sum_j;
+        sums[j] = wtr[j]*sum_j;
       } else {
         sums[j] = 0.0;
       }
