@@ -156,8 +156,8 @@ namespace ogs {
   occa::kernel scatterManyKernel_long;
 
 
-  occa::kernel findpts_el_eval_2;
-  occa::kernel findpts_el_eval_3;
+  occa::kernel findpts_local_eval_2;
+  occa::kernel findpts_local_eval_3;
 }
 
 
@@ -328,8 +328,8 @@ void ogs::initKernels(MPI_Comm comm, occa::device device) {
 
 
 
-      ogs::findpts_el_eval_2 = device.buildKernel(DOGS "/okl/findpts_el_eval.okl", "findpts_el_eval_2", ogs::kernelInfo);
-      ogs::findpts_el_eval_3 = device.buildKernel(DOGS "/okl/findpts_el_eval.okl", "findpts_el_eval_3", ogs::kernelInfo);
+      ogs::findpts_local_eval_2 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_2", ogs::kernelInfo);
+      ogs::findpts_local_eval_3 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_3", ogs::kernelInfo);
     }
     MPI_Barrier(comm);
   }
@@ -451,8 +451,8 @@ void ogs::freeKernels() {
   ogs::scatterManyKernel_int.free();
   ogs::scatterManyKernel_long.free();
 
-  ogs::findpts_el_eval_2.free();
-  ogs::findpts_el_eval_3.free();
+  ogs::findpts_local_eval_2.free();
+  ogs::findpts_local_eval_3.free();
 
   ogs::o_haloBuf.free();
   ogs::haloBuf = NULL;

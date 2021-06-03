@@ -1,13 +1,14 @@
 
-#define hash_data           TOKEN_PASTE(findpts_hash_data_     ,D)
-#define eval_src_pt         TOKEN_PASTE(eval_src_pt_           ,D)
-#define eval_out_pt         TOKEN_PASTE(eval_out_pt_           ,D)
-#define findpts_el_data     TOKEN_PASTE(findpts_el_data_       ,D)
-#define findpts_el_eval     TOKEN_PASTE(ogs_findpts_el_eval_   ,D)
-#define findpts_local_data  TOKEN_PASTE(findpts_local_data_    ,D)
-#define findpts_local_eval  TOKEN_PASTE(ogs_findpts_local_eval_,D)
-#define findpts_data        TOKEN_PASTE(findpts_data_          ,D)
-#define findpts_eval        TOKEN_PASTE(ogs_findpts_eval_      ,D)
+#define hash_data              TOKEN_PASTE(findpts_hash_data_               ,D)
+#define eval_src_pt            TOKEN_PASTE(eval_src_pt_                     ,D)
+#define eval_out_pt            TOKEN_PASTE(eval_out_pt_                     ,D)
+#define findpts_el_data        TOKEN_PASTE(findpts_el_data_                 ,D)
+#define findpts_el_eval        TOKEN_PASTE(ogs_findpts_el_eval_             ,D)
+#define findpts_local_data     TOKEN_PASTE(findpts_local_data_              ,D)
+#define findpts_local_eval     TOKEN_PASTE(ogs_findpts_local_eval_          ,D)
+#define findpts_data           TOKEN_PASTE(findpts_data_                    ,D)
+#define findpts_eval           TOKEN_PASTE(ogs_findpts_eval_                ,D)
+#define cpp_findpts_local_eval TOKEN_PASTE(ogs_findpts_local_eval_internal_ ,D)
 
 #define   AT(T,var,i)   \
         (T*)(      (char*)var##_base   +(i)*var##_stride   )
@@ -32,39 +33,28 @@ struct findpts_data {
 struct eval_src_pt { double r[D]; uint index, proc, el; };
 struct eval_out_pt { double out; uint index, proc; };
 
-/* assumes points are already grouped by elements */
-void findpts_local_eval(
-        double *const out_base, const unsigned out_stride,
-  const uint   *const  el_base, const unsigned  el_stride,
-  const double *const   r_base, const unsigned   r_stride,
-  const uint npt,
-  const double *const in, struct findpts_local_data *const fd)
+void findpts_local_eval(      double *const out_base, const unsigned out_stride,
+                        const uint   *const  el_base, const unsigned  el_stride,
+                        const double *const   r_base, const unsigned   r_stride,
+                        const uint npt,
+                        const double *const in, struct findpts_local_data *const fd)
 {
-  struct findpts_el_data *const fed = &fd->fed;
-  const unsigned npt_max = fed->npt_max;
-  uint p;
-  for(p=0;p<npt;) {
-    const uint el = *CAT(uint,el,p);
-    const double *const in_el = in+el*fd->ntot;
-    do {
-      unsigned i; uint q;
-      for(i=0,q=p;i<npt_max && q<npt && *CAT(uint,el,q)==el;++q) ++i;
-      findpts_el_eval( AT(double,out,p),out_stride,
-                      CAT(double,  r,p),  r_stride, i,
-                      in_el,fed);
-      p=q;
-    } while(p<npt && *CAT(uint,el,p)==el);
-  }
+  unsigned lag_data_size[D];
+  for (int i = 0; i < D; ++i) lag_data_size[i] = gll_lag_size(fd->fed.n[i]);
+  cpp_findpts_local_eval(out_base, out_stride,
+                          el_base,  el_stride,
+                           r_base,   r_stride,
+                         npt, in, fd->ntot,
+                         fd->fed.n, fd->fed.lag_data, lag_data_size);
 }
 
-void findpts_eval(
-        double *const  out_base, const unsigned  out_stride,
-  const uint   *const code_base, const unsigned code_stride,
-  const uint   *const proc_base, const unsigned proc_stride,
-  const uint   *const   el_base, const unsigned   el_stride,
-  const double *const    r_base, const unsigned    r_stride,
-  const uint npt,
-  const double *const in, struct findpts_data *const fd)
+void findpts_eval(      double *const  out_base, const unsigned  out_stride,
+                  const uint   *const code_base, const unsigned code_stride,
+                  const uint   *const proc_base, const unsigned proc_stride,
+                  const uint   *const   el_base, const unsigned   el_stride,
+                  const double *const    r_base, const unsigned    r_stride,
+                  const uint npt,
+                  const double *const in, struct findpts_data *const fd)
 {
   struct array src, outpt;
   /* copy user data, weed out unfound points, send out */

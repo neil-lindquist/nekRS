@@ -184,8 +184,8 @@ namespace ogs {
   extern occa::kernel scatterManyKernel_int;
   extern occa::kernel scatterManyKernel_long;
 
-  extern occa::kernel findpts_el_eval_2;
-  extern occa::kernel findpts_el_eval_3;
+  extern occa::kernel findpts_local_eval_2;
+  extern occa::kernel findpts_local_eval_3;
 
   extern occa::stream defaultStream;
   extern occa::stream dataStream;

@@ -21,7 +21,6 @@
 #include "findpts_el.h"
 #include "findpts_local.h"
 #include "findpts.h"
-#include "ogs_findpts_el.h"
 
 #include "ogs_findpts.h"
 
