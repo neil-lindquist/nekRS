@@ -15,6 +15,7 @@
 void particle_init(dfloat x[LPART][MAX_D],
                    bool valid[LPART],
                    int partid[LPART],
+                   dfloat v_hist[LPART][2][MAX_D],
                    dfloat part_color[LPART],
                    int &npart) {
 
@@ -40,6 +41,7 @@ void particle_init(dfloat x[LPART][MAX_D],
         x[l][1] = yp;
         x[l][2] = zp;
         partid[l] = k;
+        for (int m = 0; m < 2; ++m) for (int d = 0; d < MAX_D; ++d) v_hist[l][m][d] = 0;
         valid[l] = true;
 //      part_color[l] = time;      // color by spawning timestep
 //      part_color[l] = partid[l]; // color by id
@@ -59,6 +61,7 @@ void particle_init(dfloat x[LPART][MAX_D],
 
 
 void particle_advect_std(dfloat x[LPART][MAX_D],
+                         bool valid[LPART],
                          dfloat v_hist[LPART][2][MAX_D],
                          int npart, nrs_t *nrs, int tstep) {
 
@@ -79,7 +82,6 @@ void particle_advect_std(dfloat x[LPART][MAX_D],
 
   double c1, c2, c3, dt = nrs->dt[0];
   if (tstep == 0) { // AB1
-    memset(vh, 0, 2*LPART*MAX_D*sizeof(dfloat));
     c1 = 1.0;
     c2 = 0.0;
     c3 = 0.0;
@@ -93,7 +95,7 @@ void particle_advect_std(dfloat x[LPART][MAX_D],
     c3 =   5.0 / 12.0;
   }
 
-  for (int i=0; i < LPART; ++i) {
+  for (int i = 0; i < npart; ++i) {
     if (valid[i]) {
       // Update particle position and velocity history
       for (int k=0; k < D; ++k) {
@@ -106,16 +108,16 @@ void particle_advect_std(dfloat x[LPART][MAX_D],
 
   // Remove particles that have exited the region
   // outflow is at x=15
-  for (int i = 0; i < LPART; ++i) {
+  for (int i = 0; i < npart; ++i) {
     valid[i] = x[i][0] <= 15;
   }
 }
 
-void particle_out (dfloat x[LPART][MAX_D],
-                   bool valid[LPART],
-                   int partid[LPART],
-                   dfloat part_color[LPART],
-                   int npart, nrs_t *nrs)
+void particle_out(dfloat x[LPART][MAX_D],
+                  bool valid[LPART],
+                  int partid[LPART],
+                  dfloat part_color[LPART],
+                  int npart, nrs_t *nrs)
 {
 
   static dfloat x_temp[LPART][MAX_D+2];
@@ -136,7 +138,6 @@ void particle_out (dfloat x[LPART][MAX_D],
     file_out = fopen(fname, "w+");
   }
 
-  //
   int l_min = INT_MAX, l_max = INT_MIN, min_points, max_points;
   for (int i = 0; i < npart; ++i) {
     if (valid[i]) {
@@ -166,7 +167,7 @@ void particle_out (dfloat x[LPART][MAX_D],
 
     memset(&x_temp[0][0], 0, mpart*(MAX_D+1)*sizeof(dfloat));
     for (int ii=0; ii < npart; ++ii) {
-      if (valid[i] && i0 <= partid[ii] && partid[ii] < i1) {
+      if (valid[ii] && i0 <= partid[ii] && partid[ii] < i1) {
         int i = partid[ii]-i0;
         for (int j = 0; j < D; ++j) {
           x_temp[i][j] = x[ii][j];       // coordinates
@@ -208,9 +209,9 @@ void my_particle_generator(nrs_t *nrs, int tstep) {
   // Only output particles on output steps to ensure particles match the field files
   bool ifoutpart = nrs->isOutputStep;
 
-  if (ifnewpart) particle_init(pts, part_valid, partid, part_color, npart);
-  particle_advect_std         (pts, part_valid, v_hist,             npart, nrs, tstep);
-  if (ifoutpart) particle_out (pts, part_valid, partid, part_color, npart, nrs);
+  if (ifnewpart) particle_init(pts, part_valid, partid, v_hist, part_color, npart);
+  particle_advect_std         (pts, part_valid,         v_hist,             npart, nrs, tstep);
+  if (ifoutpart) particle_out (pts, part_valid, partid,         part_color, npart, nrs);
 }
 
 /* UDF Functions */
