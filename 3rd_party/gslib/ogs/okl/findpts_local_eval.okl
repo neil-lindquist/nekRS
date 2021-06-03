@@ -402,7 +402,7 @@ void lagrange_eval(double *p, double *data,
     @shared double sums[MAX_GLL_N];
 
     const unsigned int el = *CAT(unsigned int, el, i);
-    const double *in_el = CAT(double, in, el);
+    const double *in_el = in + el*in_stride;
 
     const double *r = CAT(double, r, i);
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
@@ -493,10 +493,10 @@ void lagrange_eval(double *p, double *data,
     @shared double wtt[MAX_GLL_N];
     @shared double sums[MAX_GLL_N]; // could be overlaped with wtt
 
-    const unsigned int el = *(el_base + el_stride*i);
-    const double *in_el = in + in_stride*el;
+    const unsigned int el = *CAT(unsigned int, el, i);
+    const double *in_el = in + el*in_stride;
 
-    const double *r = r_base + r_stride*i;
+    const double *r = CAT(double, r, i);
     for (unsigned int j = 0; j < inner_size; ++j; @inner) {
       lagrange_eval(wtr, lag_data_0, nr, r[0], j);
       lagrange_eval(wts, lag_data_1, ns, r[1], j);
@@ -528,7 +528,7 @@ void lagrange_eval(double *p, double *data,
       }
     }
 
-    double *out = out_base + out_stride*i;
+    double *out = AT(double, out, i);
 
 // MAX_GLL_N is assumed to be at most 256
 #if MAX_GLL_N>128
