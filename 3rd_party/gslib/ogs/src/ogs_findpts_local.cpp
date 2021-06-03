@@ -33,35 +33,27 @@ void ogs_findpts_local_eval_internal_2(
   assert(ns <= MAX_GLL_N);
 
   occa::json malloc_props;
-
-  occa::memory d_out_base = device.malloc(out_stride*pn,
-                                          occa::dtype::byte,
-                                          malloc_props);
-  d_out_base.copyFrom(out_base);
-  occa::memory d_el_base = device.malloc(el_stride*pn,
-                                         occa::dtype::byte,
-                                         malloc_props);
+  unsigned work_size = (el_stride + r_stride + out_stride)*pn
+                       +            lag_data_size[0]*sizeof(double)
+                       + (nr != ns)*lag_data_size[1]*sizeof(double);
+  occa::memory d_work = device.malloc(work_size, occa::dtype::byte, malloc_props);
+  occa::memory d_out_base = d_work.slice(0, out_stride*pn); d_work += out_stride*pn;
+  occa::memory  d_el_base = d_work.slice(0,  el_stride*pn); d_work +=  el_stride*pn;
+  occa::memory   d_r_base = d_work.slice(0,   r_stride*pn); d_work +=   r_stride*pn;
   d_el_base.copyFrom(el_base);
-  occa::memory   d_r_base = device.malloc(r_stride*pn,
-                                          occa::dtype::byte,
-                                          malloc_props);
   d_r_base.copyFrom(r_base);
 
-  occa::memory d_lag_data_0 = device.malloc(lag_data_size[0],
-                                            occa::dtype::double_,
-                                            malloc_props);
+  d_work.setDtype(occa::dtype::double_);
+  occa::memory d_lag_data_0 = d_work.slice(0, lag_data_size[0]); d_work += lag_data_size[0];
   d_lag_data_0.copyFrom(lag_data[0]);
-  // reuse lag_data_0 if all directions have the same degree
+  // avoid duplicate copies of lag_data
   occa::memory d_lag_data_1;
   if (nr == ns) {
     d_lag_data_1 = d_lag_data_0;
   } else {
-    d_lag_data_1 = device.malloc(lag_data_size[1],
-                                            occa::dtype::double_,
-                                            malloc_props);
+    d_lag_data_1 = d_work.slice(0, lag_data_size[1]); d_work += lag_data_size[1];
     d_lag_data_1.copyFrom(lag_data[1]);
   }
-
 
   occa::memory d_in = *(occa::memory*)in;
 
@@ -93,36 +85,32 @@ void ogs_findpts_local_eval_internal_3(
   assert(nt <= MAX_GLL_N);
 
   occa::json malloc_props;
-
-  occa::memory d_out_base = device.malloc(out_stride*pn,
-                                          occa::dtype::byte,
-                                          malloc_props);
-  d_out_base.copyFrom(out_base);
-  occa::memory d_el_base = device.malloc(el_stride*pn,
-                                         occa::dtype::byte,
-                                         malloc_props);
+  unsigned work_size = (el_stride + r_stride + out_stride)*pn
+                       +            lag_data_size[0]*sizeof(double)
+                       + (nr != ns)*lag_data_size[1]*sizeof(double)
+                       + (nr != nt)*lag_data_size[2]*sizeof(double);
+  occa::memory d_work = device.malloc(work_size, occa::dtype::byte, malloc_props);
+  occa::memory d_out_base = d_work.slice(0, out_stride*pn); d_work += out_stride*pn;
+  occa::memory  d_el_base = d_work.slice(0,  el_stride*pn); d_work +=  el_stride*pn;
+  occa::memory   d_r_base = d_work.slice(0,   r_stride*pn); d_work +=   r_stride*pn;
   d_el_base.copyFrom(el_base);
-  occa::memory   d_r_base = device.malloc(r_stride*pn,
-                                          occa::dtype::byte,
-                                          malloc_props);
   d_r_base.copyFrom(r_base);
 
-  occa::memory d_lag_data_0 = device.malloc(lag_data_size[0],
-                                            occa::dtype::double_,
-                                            malloc_props);
+  d_work.setDtype(occa::dtype::double_);
+  occa::memory d_lag_data_0 = d_work.slice(0, lag_data_size[0]); d_work += lag_data_size[0];
   d_lag_data_0.copyFrom(lag_data[0]);
-  // reuse lag_data_0 if all directions have the same degree
+  // avoid duplicate copies of lag_data
   occa::memory d_lag_data_1, d_lag_data_2;
   if (nr == ns) {
     d_lag_data_1 = d_lag_data_0;
   } else {
-    d_lag_data_1 = device.malloc(lag_data_size[1], occa::dtype::double_, malloc_props);
+    d_lag_data_1 = d_work.slice(0, lag_data_size[1]); d_work += lag_data_size[1];
     d_lag_data_1.copyFrom(lag_data[1]);
   }
   if (nr == nt) {
     d_lag_data_2 = d_lag_data_0;
   } else {
-    d_lag_data_2 = device.malloc(lag_data_size[2], occa::dtype::double_, malloc_props);
+    d_lag_data_2 = d_work.slice(0, lag_data_size[2]); d_work += lag_data_size[2];
     d_lag_data_2.copyFrom(lag_data[2]);
   }
 
