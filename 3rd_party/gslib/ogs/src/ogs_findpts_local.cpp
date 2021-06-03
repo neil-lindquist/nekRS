@@ -21,7 +21,7 @@ void ogs_findpts_local_eval_internal_2(
         double   *const out_base, const unsigned out_stride,
   const unsigned *const  el_base, const unsigned  el_stride,
   const double   *const   r_base, const unsigned   r_stride,
-  const unsigned pn, const double *const in, const unsigned in_stride,
+  const unsigned pn, const void *const in, const unsigned in_stride,
   unsigned *const n, double *const lag_data[2], unsigned lag_data_size[2])
 {
   if (pn == 0) return;
@@ -31,11 +31,6 @@ void ogs_findpts_local_eval_internal_2(
 
   assert(nr <= MAX_GLL_N);
   assert(ns <= MAX_GLL_N);
-
-  unsigned max_el = 0;
-  for (unsigned i = 0; i < pn; ++i) {
-    if (max_el < *CAT(unsigned, el, i)) max_el = *CAT(unsigned, el, i);
-  }
 
   occa::json malloc_props;
 
@@ -51,9 +46,6 @@ void ogs_findpts_local_eval_internal_2(
                                           occa::dtype::byte,
                                           malloc_props);
   d_r_base.copyFrom(r_base);
-
-  occa::memory d_in = device.malloc(in_stride*(max_el+1), occa::dtype::double_, malloc_props);
-  d_in.copyFrom(in);
 
   occa::memory d_lag_data_0 = device.malloc(lag_data_size[0],
                                             occa::dtype::double_,
@@ -70,6 +62,9 @@ void ogs_findpts_local_eval_internal_2(
     d_lag_data_1.copyFrom(lag_data[1]);
   }
 
+
+  occa::memory d_in = (occa::memory*)in;
+
   ogs::findpts_local_eval_2(d_out_base, out_stride,
                              d_el_base,  el_stride,
                               d_r_base,   r_stride,
@@ -85,7 +80,7 @@ void ogs_findpts_local_eval_internal_3(
         double   *const out_base, const unsigned out_stride,
   const unsigned *const  el_base, const unsigned  el_stride,
   const double   *const   r_base, const unsigned   r_stride,
-  const unsigned pn, const double *const in, const unsigned in_stride,
+  const unsigned pn, const void *const in, const unsigned in_stride,
   unsigned *const n, double *const lag_data[3], unsigned lag_data_size[3])
 {
   if (pn == 0) return;
@@ -96,11 +91,6 @@ void ogs_findpts_local_eval_internal_3(
   assert(nr <= MAX_GLL_N);
   assert(ns <= MAX_GLL_N);
   assert(nt <= MAX_GLL_N);
-
-  unsigned max_el = 0;
-  for (unsigned i = 0; i < pn; ++i) {
-    if (max_el < *CAT(unsigned, el, i)) max_el = *CAT(unsigned, el, i);
-  }
 
   occa::json malloc_props;
 
@@ -116,9 +106,6 @@ void ogs_findpts_local_eval_internal_3(
                                           occa::dtype::byte,
                                           malloc_props);
   d_r_base.copyFrom(r_base);
-
-  occa::memory d_in = device.malloc(in_stride*(max_el+1), occa::dtype::double_, malloc_props);
-  d_in.copyFrom(in);
 
   occa::memory d_lag_data_0 = device.malloc(lag_data_size[0],
                                             occa::dtype::double_,
@@ -138,6 +125,8 @@ void ogs_findpts_local_eval_internal_3(
     d_lag_data_2 = device.malloc(lag_data_size[2], occa::dtype::double_, malloc_props);
     d_lag_data_2.copyFrom(lag_data[2]);
   }
+
+  occa::memory d_in = (occa::memory*)in;
 
   ogs::findpts_local_eval_3(d_out_base, out_stride,
                              d_el_base,  el_stride,

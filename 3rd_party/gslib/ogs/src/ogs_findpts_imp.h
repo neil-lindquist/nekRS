@@ -37,7 +37,7 @@ void findpts_local_eval(      double *const out_base, const unsigned out_stride,
                         const uint   *const  el_base, const unsigned  el_stride,
                         const double *const   r_base, const unsigned   r_stride,
                         const uint npt,
-                        const double *const in, struct findpts_local_data *const fd)
+                        const void *const in, struct findpts_local_data *const fd)
 {
   unsigned lag_data_size[D];
   for (int i = 0; i < D; ++i) lag_data_size[i] = gll_lag_size(fd->fed.n[i]);
@@ -54,7 +54,7 @@ void findpts_eval(      double *const  out_base, const unsigned  out_stride,
                   const uint   *const   el_base, const unsigned   el_stride,
                   const double *const    r_base, const unsigned    r_stride,
                   const uint npt,
-                  const double *const in, struct findpts_data *const fd)
+                  const void *const in, struct findpts_data *const fd)
 {
   struct array src, outpt;
   /* copy user data, weed out unfound points, send out */

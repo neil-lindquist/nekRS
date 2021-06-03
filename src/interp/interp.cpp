@@ -54,7 +54,7 @@ void interp_free(struct interp_data *handle)
   delete handle;
 }
 
-void interp_nfld(dfloat *fld, dlong nfld,
+void interp_nfld(dfloat *fld, occa::memory d_fld, dlong nfld,
                  dfloat *x[], dlong x_stride[], dlong n,
                  dlong *iwk, dfloat *rwk, dlong nmax,
                  bool if_need_pts, struct interp_data *handle,
@@ -114,7 +114,7 @@ void interp_nfld(dfloat *fld, dlong nfld,
                     proc,      1               *sizeof(dlong),
                     el,        1               *sizeof(dlong),
                     r,         D               *sizeof(dfloat),
-                    n, fld+in_offset, handle->findpts);
+                    n, fld+in_offset, d_fld+in_offset, handle->findpts);
   }
 
 //  nn(1) = iglsum(n,1)
@@ -147,7 +147,7 @@ void interp_velocity(dfloat *uvw_base[], dlong uvw_stride[],
     interp_handle = interp_setup(nrs, 0);
   }
 
-  interp_nfld(nrs->U, nrs->dim,
+  interp_nfld(nrs->U, nrs->o_U, nrs->dim,
               xyz_base, xyz_stride, n,
               iwork, rwork, n, true, interp_handle,
               uvw_base, uvw_stride);
