@@ -115,11 +115,9 @@ void ogsFindptsEval(
 
   dfloat *out_copy = (dfloat*)malloc(out_stride*npt*sizeof(double));
 
-  // Set initial value so that we can detect out not being updating
-  for (int i = 0; i < npt; ++i) {
-    *(dfloat*)((char*)out_copy + i*out_stride) = 3.141592653589;
-    *(dfloat*)((char*)out_base + i*out_stride) = 2.718281828;
-  }
+  // clear, so unset values are the same between versions
+  memset(out_copy, 0, out_stride*npt);
+  memset(out_base, 0, out_stride*npt);
   if (fd->D == 2) {
     ogsDevFindptsEval_2( out_copy,  out_stride,
                         code_base, code_stride,
