@@ -149,7 +149,7 @@ void ogsFindptsEval(
   for (int i = 0; i < npt; ++i) {
     dfloat out_copy_i = *(dfloat*)((char*)out_copy + out_stride*i);
     dfloat out_base_i = *(dfloat*)((char*)out_base + out_stride*i);
-    if (std::abs(out_base_i - out_copy_i) > 1e-15) {
+    if (std::abs(out_base_i - out_copy_i) > 2e-15) {
       printf("WARNING: ogs_findpts_eval varied at point %d: %e != %e (diff %e)\n", i, out_base_i, out_copy_i, out_base_i-out_copy_i);
     }
   }
