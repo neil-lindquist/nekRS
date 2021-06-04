@@ -116,8 +116,10 @@ void ogsFindptsEval(
   dfloat *out_copy = (dfloat*)malloc(out_stride*npt*sizeof(double));
 
   // clear, so unset values are the same between versions
-  memset(out_copy, 0, out_stride*npt);
-  memset(out_base, 0, out_stride*npt);
+  for (int i = 0; i < npt; ++i) {
+    *(dfloat*)((char*)out_copy + out_stride*i) = 0;
+    *(dfloat*)((char*)out_base + out_stride*i) = 0;
+  }
   if (fd->D == 2) {
     ogsDevFindptsEval_2( out_copy,  out_stride,
                         code_base, code_stride,
