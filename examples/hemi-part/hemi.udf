@@ -165,7 +165,7 @@ void particle_out(dfloat x[LPART][MAX_D],
     int i1 = i0 + mpart;
     ilast = i1;
 
-    memset(&x_temp[0][0], 0, mpart*(MAX_D+1)*sizeof(dfloat));
+    memset(&x_temp[0][0], 0, mpart*(MAX_D+2)*sizeof(dfloat));
     for (int ii=0; ii < npart; ++ii) {
       if (valid[ii] && i0 <= partid[ii] && partid[ii] < i1) {
         int i = partid[ii]-i0;
@@ -177,7 +177,7 @@ void particle_out(dfloat x[LPART][MAX_D],
       }
     }
 
-    MPI_Reduce(&x_temp[0][0], &x_root[0][0], (MAX_D+1)*mpart, MPI_DFLOAT, MPI_SUM, 0, mpi_comm);
+    MPI_Reduce(&x_temp[0][0], &x_root[0][0], mpart*(MAX_D+2), MPI_DFLOAT, MPI_SUM, 0, mpi_comm);
     if (mpi_rank == 0) {
       for (int i = 0; i < mpart; ++i) {
         if (x_root[i][D+1] != 0) { // don't output invalid particles
