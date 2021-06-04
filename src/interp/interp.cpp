@@ -60,7 +60,6 @@ void interp_nfld(dfloat *fld, occa::memory d_fld, dlong nfld,
                  bool if_need_pts, struct interp_data *handle,
                  dfloat *out[], dlong out_stride[])
 {
-
   assert(n <= nmax);
 
   dlong  *code  = iwk;
@@ -106,6 +105,7 @@ void interp_nfld(dfloat *fld, occa::memory d_fld, dlong nfld,
     }
   }
 
+  occa::memory d_fld_float = d_fld.cast(occa::dtype::get<dfloat>());
   for (int ifld = 0; ifld < nfld; ++ifld) {
      dlong in_offset  = ifld*handle->nrs->fieldOffset;
 
@@ -114,7 +114,7 @@ void interp_nfld(dfloat *fld, occa::memory d_fld, dlong nfld,
                     proc,      1               *sizeof(dlong),
                     el,        1               *sizeof(dlong),
                     r,         D               *sizeof(dfloat),
-                    n, fld+in_offset, d_fld+in_offset, handle->findpts);
+                    n, fld+in_offset, d_fld_float+in_offset, handle->findpts);
   }
 
 //  nn(1) = iglsum(n,1)

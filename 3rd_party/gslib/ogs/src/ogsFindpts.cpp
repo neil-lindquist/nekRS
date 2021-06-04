@@ -124,7 +124,7 @@ void ogsFindptsEval(
                         proc_base, proc_stride,
                           el_base,   el_stride,
                            r_base,    r_stride,
-                        npt, d_in, (findpts_data_2*)fd->findpts_data);
+                        npt, &d_in, (findpts_data_2*)fd->findpts_data);
     ogsHostFindptsEval_2( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
@@ -137,7 +137,7 @@ void ogsFindptsEval(
                         proc_base, proc_stride,
                           el_base,   el_stride,
                            r_base,    r_stride,
-                        npt, d_in, (findpts_data_3*)fd->findpts_data);
+                        npt, &d_in, (findpts_data_3*)fd->findpts_data);
     ogsHostFindptsEval_3( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,

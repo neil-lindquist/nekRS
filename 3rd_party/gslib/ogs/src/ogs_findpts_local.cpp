@@ -63,7 +63,7 @@ void ogs_findpts_local_eval_internal_2(
   }
 
 
-  occa::memory d_in = (occa::memory*)in;
+  occa::memory d_in = *(occa::memory*)in;
 
   ogs::findpts_local_eval_2(d_out_base, out_stride,
                              d_el_base,  el_stride,
@@ -126,7 +126,7 @@ void ogs_findpts_local_eval_internal_3(
     d_lag_data_2.copyFrom(lag_data[2]);
   }
 
-  occa::memory d_in = (occa::memory*)in;
+  occa::memory d_in = *(occa::memory*)in;
 
   ogs::findpts_local_eval_3(d_out_base, out_stride,
                              d_el_base,  el_stride,
