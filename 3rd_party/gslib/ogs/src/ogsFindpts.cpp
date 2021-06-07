@@ -108,25 +108,12 @@ void ogsFindptsEval(
   const dlong  *const proc_base, const dlong proc_stride,
   const dlong  *const   el_base, const dlong   el_stride,
   const dfloat *const    r_base, const dlong    r_stride,
-  const dlong npt, const dfloat *const in, occa::memory d_in, ogs_findpts_t *const fd) {
+  const dlong npt, const dfloat *const in, ogs_findpts_t *const fd) {
 
   assert(sizeof(dfloat) == sizeof(double));
   assert(sizeof(dlong) == sizeof(uint));
 
-  dfloat *out_copy = (dfloat*)malloc(out_stride*npt*sizeof(double));
-
-  // clear, so unset values are the same between versions
-  for (int i = 0; i < npt; ++i) {
-    *(dfloat*)((char*)out_copy + out_stride*i) = 0;
-    *(dfloat*)((char*)out_base + out_stride*i) = 0;
-  }
   if (fd->D == 2) {
-    ogsDevFindptsEval_2( out_copy,  out_stride,
-                        code_base, code_stride,
-                        proc_base, proc_stride,
-                          el_base,   el_stride,
-                           r_base,    r_stride,
-                        npt, &d_in, (findpts_data_2*)fd->findpts_data);
     ogsHostFindptsEval_2( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
@@ -134,12 +121,6 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_2*)fd->findpts_data);
   } else {
-    ogsDevFindptsEval_3( out_copy,  out_stride,
-                        code_base, code_stride,
-                        proc_base, proc_stride,
-                          el_base,   el_stride,
-                           r_base,    r_stride,
-                        npt, &d_in, (findpts_data_3*)fd->findpts_data);
     ogsHostFindptsEval_3( out_base,  out_stride,
                          code_base, code_stride,
                          proc_base, proc_stride,
@@ -147,13 +128,33 @@ void ogsFindptsEval(
                             r_base,    r_stride,
                          npt, in, (findpts_data_3*)fd->findpts_data);
   }
-  //printf("Did findpts_eval comparison w/ %d points and out_stride of %d\n", npt, out_stride);
-  for (int i = 0; i < npt; ++i) {
-    dfloat out_copy_i = *(dfloat*)((char*)out_copy + out_stride*i);
-    dfloat out_base_i = *(dfloat*)((char*)out_base + out_stride*i);
-    if (std::abs(out_base_i - out_copy_i) > 2e-15) {
-      printf("WARNING: ogs_findpts_eval varied at point %d: %e != %e (diff %e)\n", i, out_base_i, out_copy_i, out_base_i-out_copy_i);
-    }
+}
+
+
+void ogsFindptsEval(
+        dfloat *const  out_base, const dlong  out_stride,
+  const dlong  *const code_base, const dlong code_stride,
+  const dlong  *const proc_base, const dlong proc_stride,
+  const dlong  *const   el_base, const dlong   el_stride,
+  const dfloat *const    r_base, const dlong    r_stride,
+  const dlong npt, occa::memory d_in, ogs_findpts_t *const fd) {
+
+  assert(sizeof(dfloat) == sizeof(double));
+  assert(sizeof(dlong) == sizeof(uint));
+
+  if (fd->D == 2) {
+    ogsDevFindptsEval_2( out_base,  out_stride,
+                        code_base, code_stride,
+                        proc_base, proc_stride,
+                          el_base,   el_stride,
+                           r_base,    r_stride,
+                        npt, &d_in, (findpts_data_2*)fd->findpts_data);
+  } else {
+    ogsDevFindptsEval_3( out_base,  out_stride,
+                        code_base, code_stride,
+                        proc_base, proc_stride,
+                          el_base,   el_stride,
+                           r_base,    r_stride,
+                        npt, &d_in, (findpts_data_3*)fd->findpts_data);
   }
-  free(out_copy);
 }
