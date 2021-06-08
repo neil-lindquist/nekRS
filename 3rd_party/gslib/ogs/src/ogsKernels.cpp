@@ -164,7 +164,6 @@ namespace ogs {
 void ogs::initKernels(MPI_Comm comm, occa::device device, bool verbose) {
 
   ogs::kernelInfo["defines/ " "p_blockSize"] = BLOCKSIZE;
-  ogs::kernelInfo["defines/ " "MAX_GLL_N"] = MAX_GLL_N;
   ogs::kernelInfo["defines/ " "dlong"] = dlongString;
   ogs::kernelInfo["defines/ " "hlong"] = hlongString;
 
@@ -332,10 +331,6 @@ void ogs::initKernels(MPI_Comm comm, occa::device device, bool verbose) {
       ogs::scatterManyKernel_double = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_double", props);
       ogs::scatterManyKernel_int = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_int", props);
       ogs::scatterManyKernel_long = device.buildKernel(DOGS "/okl/scatterMany.okl", "scatterMany_long", props);
-
-
-      ogs::findpts_local_eval_2 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_2", props);
-      ogs::findpts_local_eval_3 = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_3", props);
     }
     MPI_Barrier(comm);
   }
@@ -456,9 +451,51 @@ void ogs::freeKernels() {
   ogs::scatterManyKernel_int.free();
   ogs::scatterManyKernel_long.free();
 
-  ogs::findpts_local_eval_2.free();
-  ogs::findpts_local_eval_3.free();
-
   ogs::o_haloBuf.free();
   ogs::haloBuf = NULL;
+}
+
+occa::kernel ogs::initFindptsKernel(MPI_Comm comm, occa::device device,
+                                    dlong D, const dlong *n) {
+
+  occa::properties kernelInfo;
+
+  kernelInfo["defines/ " "NR"] = n[0];
+  kernelInfo["defines/ " "NS"] = n[1];
+  if (D == 3){
+    kernelInfo["defines/ " "NT"] = n[2];
+  } else {
+    kernelInfo["defines/ " "NT"] = 1;
+  }
+  kernelInfo["defines/ " "dlong"] = dlongString;
+  kernelInfo["defines/ " "hlong"] = hlongString;
+
+  int rank, size;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &size);
+
+  kernelInfo["defines"].asObject();
+  kernelInfo["includes"].asArray();
+  kernelInfo["header"].asArray();
+  kernelInfo["flags"].asObject();
+
+  occa::kernel findpts_local_eval;
+
+  for (int r=0;r<2;r++){
+    if ((r==0 && rank==0) || (r==1 && rank>0)) {
+      if (D == 2) {
+        findpts_local_eval = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_2", kernelInfo);
+      } else {
+        findpts_local_eval = device.buildKernel(DOGS "/okl/findpts_local_eval.okl", "findpts_local_eval_3", kernelInfo);
+      }
+      findpts_local_eval.dontUseRefs();
+    }
+    MPI_Barrier(comm);
+  }
+
+  return findpts_local_eval;
+}
+
+void ogs::freeFindptsKernel(occa::kernel findpts_local_eval) {
+  findpts_local_eval.free();
 }
