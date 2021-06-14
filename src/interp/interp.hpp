@@ -11,6 +11,11 @@ struct interp_data{
   ogs_findpts_t* findpts;
 };
 
+extern double interp_times[2];
+extern "C" {
+  extern double findpts_times[6];
+}
+
 // Does the setup to interpolate fields on the given mesh
 //   nrs            ... nekRS configuration data
 //   newton_tol     ... tolerance for newton solve (use 0 for default)

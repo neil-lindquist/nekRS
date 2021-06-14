@@ -252,14 +252,19 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
 {
   const uint np = fd->cr.comm.np, id=fd->cr.comm.id;
   struct array hash_pt, src_pt, out_pt;
+  double start_time, end_time;
   /* look locally first */
+  start_time = MPI_Wtime();
   if(npt) findpts_local( code_base, code_stride,
                            el_base,   el_stride,
                             r_base,    r_stride,
                         dist2_base,dist2_stride,
                             x_base,    x_stride,
                         npt,&fd->local,&fd->cr.data);
+  end_time = MPI_Wtime();
+  findpts_times[0] += end_time-start_time;
   /* send unfound and border points to global hash cells */
+  start_time = MPI_Wtime();
   {
     uint index;
     uint *code=code_base, *proc=proc_base;
@@ -286,7 +291,10 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     hash_pt.n = pt - (struct src_pt*)hash_pt.ptr;
     sarray_transfer(struct src_pt,&hash_pt,proc,1,&fd->cr);
   }
+  end_time = MPI_Wtime();
+  findpts_times[1] += end_time-start_time;
   /* look up points in hash cells, route to possible procs */
+  start_time = MPI_Wtime();
   {
     const uint *const hash_offset = fd->hash.offset;
     uint count=0, *proc, *proc_p;
@@ -317,7 +325,10 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     sarray_transfer_ext(struct src_pt,&src_pt,proc,sizeof(uint),&fd->cr);
     free(proc);
   }
+  end_time = MPI_Wtime();
+  findpts_times[2] += end_time-start_time;
   /* look for other procs' points, send back */
+  start_time = MPI_Wtime();
   {
     uint n=src_pt.n;
     const struct src_pt *spt;
@@ -338,6 +349,9 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
                     src_pt.n,&fd->local,&fd->cr.data);
     }
     array_free(&src_pt);
+  end_time = MPI_Wtime();
+  findpts_times[3] += end_time-start_time;
+  start_time = MPI_Wtime();
     /* group by code to eliminate unfound points */
     sarray_sort(struct out_pt,opt,out_pt.n, code,0, &fd->cr.data);
     n=out_pt.n; while(n && opt[n-1].code==CODE_NOT_FOUND) --n;
@@ -346,8 +360,11 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     printf("(proc %u) sending back %u found points\n",id,(unsigned)out_pt.n);
     #endif
     sarray_transfer(struct out_pt,&out_pt,proc,1,&fd->cr);
+  end_time = MPI_Wtime();
+  findpts_times[4] += end_time-start_time;
   }
   /* merge remote results with user data */
+  start_time = MPI_Wtime();
   {
     #define  AT(T,var,i) (T*)((char*)var##_base+(i)*var##_stride)
     uint n=out_pt.n;
@@ -372,6 +389,8 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     array_free(&out_pt);
     #undef AT
   }
+  end_time = MPI_Wtime();
+  findpts_times[5] += end_time-start_time;
 }
 
 struct eval_src_pt { double r[D]; uint index, proc, el; };

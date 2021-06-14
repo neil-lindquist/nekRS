@@ -14,6 +14,8 @@
 #define findpts_3         PREFIXED_NAME(findpts_3      )
 #define findpts_eval_3    PREFIXED_NAME(findpts_eval_3 )
 
+extern double findpts_times[6];
+
 struct findpts_data_2;
 struct findpts_data_3;
 

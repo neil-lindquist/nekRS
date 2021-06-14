@@ -16,6 +16,8 @@
 #endif
 
 
+double interp_times[2] = {0, 0};
+
 
 interp_data* interp_setup(nrs_t* nrs, double newton_tol)
 {
@@ -91,6 +93,8 @@ void interp_nfld(fld_ptr fld, dlong nfld,
     // findpts takes strides in terms of bytes, but interp_nfld takes strides in terms of elements
     dlong* x_stride_bytes = (dlong*)malloc(D*sizeof(dlong));
     for (int i = 0; i < D; ++i) x_stride_bytes[i] = x_stride[i]*sizeof(dfloat);
+
+    double start_time = MPI_Wtime();
     ogsFindpts(code,  1*sizeof(dlong),
                proc,  1*sizeof(dlong),
                el,    1*sizeof(dlong),
@@ -98,6 +102,7 @@ void interp_nfld(fld_ptr fld, dlong nfld,
                dist2, 1*sizeof(dfloat),
                x,     x_stride_bytes,
                n, handle->findpts);
+    interp_times[0] += MPI_Wtime() - start_time;
     free(x_stride_bytes);
 
     for (int in = 0; in < n; ++in) {
@@ -129,6 +134,7 @@ void interp_nfld(fld_ptr fld, dlong nfld,
     //  endif
   }
 
+  double start_time = MPI_Wtime();
   for (int ifld = 0; ifld < nfld; ++ifld) {
     dlong in_offset  = ifld*handle->nrs->fieldOffset;
 
@@ -139,6 +145,7 @@ void interp_nfld(fld_ptr fld, dlong nfld,
                    r,         D               *sizeof(dfloat),
                    n, fld+in_offset, handle->findpts);
   }
+  interp_times[1] += MPI_Wtime() - start_time;
 }
 
 // instantiations for host and occa memory

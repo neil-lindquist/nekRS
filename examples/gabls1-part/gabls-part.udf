@@ -318,8 +318,18 @@ void UDF_Setup(nrs_t *nrs)
 
 void UDF_ExecuteStep(nrs_t *nrs, dfloat time, int tstep)
 {
-  if (USE_HOST_FINDPTS) {
-    nrs->o_U.copyTo(nrs->U);
-  }
+  static double U_copy_time = 0;
+  double start_time = MPI_Wtime();
+  nrs->o_U.copyTo(nrs->U);
+  U_copy_time += MPI_Wtime() - start_time;
   my_particle_generator(nrs, time, tstep);
+
+  if (nrs->isOutputStep && platform_t::getInstance()->comm.mpiRank==0) {
+    std::cout << "interpolation overheads: U copy = " << U_copy_time << " findpts = " << interp_times[0] << "s, eval = " << interp_times[1] << "s" << std::endl;
+    std::cout << "findpts overheads: ";
+    for (int i = 0; i < 6; ++i) {
+      std::cout << findpts_times[i] << "s, ";
+    }
+    std::cout << std::endl;
+  }
 }
