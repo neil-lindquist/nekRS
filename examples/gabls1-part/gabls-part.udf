@@ -10,7 +10,11 @@
 
 #include "casedata.h"
 
-#define LPART 4000 /* max number of particles per MPI rank */
+#define PART_K 50
+#define PART_M 50
+#define PART_N 50
+#define MPI_SIZE 6
+#define LPART (1 + PART_K * PART_M * PART_N / MPI_SIZE)
 #define MAX_D 3
 
 #define USE_HOST_FINDPTS false
@@ -28,21 +32,22 @@ void particle_init(dfloat x[LPART][MAX_D],
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
   int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
 
+  // quick and dirty way to make sure the local allocations are big enough
+  if (MPI_SIZE != mpi_size) {
+    std::cout << mpi_rank << ": MPI size mismatch: MPI_SIZE=" << MPI_SIZE << ", mpiCommSize=" << mpi_size << std::endl;
+    exit(-1);
+  }
+
   int k  = gcount; // total # particles emitted
   int l  = lcount; // Index into local particle array
 
-  // simple but works w/ Summits 6 GPUs/node
-  int m = 30;
-  int o = 20;
-  int n = mpi_size*LPART/(m*o);
-
   // spawn LPART particles in [0.5, 3.5]x[0.5, 3.5]x[0.5, 3.5]
-  for (int ix = 0; ix <m; ++ix) {
-    for (int iy = 0; iy < n; ++iy) {
-      for (int iz = 0; iz < o; ++iz) {
+  for (int ix = 0; ix < PART_K; ++ix) {
+    for (int iy = 0; iy < PART_M; ++iy) {
+      for (int iz = 0; iz < PART_N; ++iz) {
 
-        dfloat dx = 3.6/(m-1),  dy = 3.6/(n-1),  dz = 3.6/(o-1);
-        dfloat xp = 0.2 + dx*ix, yp = 0.2 + dy*iy, zp = 0.2 + dz*iz;
+        dfloat dx = 4.0/(PART_K+1), dy = 4.0/(PART_M+1), dz = 4.0/(PART_N+1);
+        dfloat xp = dx*(ix+1),      yp = dy*(iy+1),      zp = dz*(iz+1);
 
         if (k%mpi_size == mpi_rank) { // Inject particle _only_ on this processor
           if (l >= LPART) l=0; // Retire old particles by overwriting their data
