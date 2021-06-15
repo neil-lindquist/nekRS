@@ -289,10 +289,13 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
       proc  =         (uint*)(      (char*)proc +proc_stride   );
     }
     hash_pt.n = pt - (struct src_pt*)hash_pt.ptr;
+  end_time = MPI_Wtime();
+  findpts_times[1] += end_time-start_time;
+  start_time = MPI_Wtime();
     sarray_transfer(struct src_pt,&hash_pt,proc,1,&fd->cr);
   }
   end_time = MPI_Wtime();
-  findpts_times[1] += end_time-start_time;
+  findpts_times[2] += end_time-start_time;
   /* look up points in hash cells, route to possible procs */
   start_time = MPI_Wtime();
   {
@@ -326,7 +329,7 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     free(proc);
   }
   end_time = MPI_Wtime();
-  findpts_times[2] += end_time-start_time;
+  findpts_times[3] += end_time-start_time;
   /* look for other procs' points, send back */
   start_time = MPI_Wtime();
   {
@@ -350,10 +353,13 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     }
     array_free(&src_pt);
   end_time = MPI_Wtime();
-  findpts_times[3] += end_time-start_time;
+  findpts_times[4] += end_time-start_time;
   start_time = MPI_Wtime();
     /* group by code to eliminate unfound points */
     sarray_sort(struct out_pt,opt,out_pt.n, code,0, &fd->cr.data);
+  end_time = MPI_Wtime();
+  findpts_times[5] += end_time-start_time;
+  start_time = MPI_Wtime();
     n=out_pt.n; while(n && opt[n-1].code==CODE_NOT_FOUND) --n;
     out_pt.n=n;
     #ifdef DIAGNOSTICS
@@ -361,7 +367,7 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     #endif
     sarray_transfer(struct out_pt,&out_pt,proc,1,&fd->cr);
   end_time = MPI_Wtime();
-  findpts_times[4] += end_time-start_time;
+  findpts_times[6] += end_time-start_time;
   }
   /* merge remote results with user data */
   start_time = MPI_Wtime();
@@ -390,7 +396,7 @@ void findpts(      uint   *const  code_base   , const unsigned  code_stride   ,
     #undef AT
   }
   end_time = MPI_Wtime();
-  findpts_times[5] += end_time-start_time;
+  findpts_times[7] += end_time-start_time;
 }
 
 struct eval_src_pt { double r[D]; uint index, proc, el; };

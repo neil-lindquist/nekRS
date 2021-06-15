@@ -6,9 +6,9 @@
 #define SCR -0.25       /* surface cooling rate [K/h] */
 #define ILSTRENGTH 0.01 /* inversion layer strength [K/m]*/
 
-#define NUMBER_ELEMENTS_X 16 
-#define NUMBER_ELEMENTS_Y 16
-#define NUMBER_ELEMENTS_Z 16
+#define NUMBER_ELEMENTS_X 45 
+#define NUMBER_ELEMENTS_Y 45
+#define NUMBER_ELEMENTS_Z 45
 #define XLEN  4.0
 #define YLEN  4.0
 #define ZLEN  4.0

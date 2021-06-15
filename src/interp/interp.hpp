@@ -13,7 +13,7 @@ struct interp_data{
 
 extern double interp_times[2];
 extern "C" {
-  extern double findpts_times[6];
+  extern double findpts_times[8];
 }
 
 // Does the setup to interpolate fields on the given mesh

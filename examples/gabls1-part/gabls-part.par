@@ -1,9 +1,9 @@
 [GENERAL]
 #verbose = true
-polynomialOrder = 9
+polynomialOrder = 6
 #startFrom = "restart.fld"
 stopAt = endTime
-endTime = 100
+endTime = 10
 
 dt = 1.0e-2
 timeStepper = tombo2

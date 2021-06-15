@@ -29,7 +29,7 @@
 #define CODE_BORDER 1
 #define CODE_NOT_FOUND 2
 
-double findpts_times[6];
+double findpts_times[8];
 
 struct ulong_range { ulong min, max; };
 struct proc_index { uint proc, index; };
