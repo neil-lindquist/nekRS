@@ -99,11 +99,12 @@ void ogs_findpts_local_eval_2(
   occa::device device = *ogs_fd->device;
   occa::memory d_in = *(occa::memory*)in;
 
-  occa::memory workspace = device.malloc((out_stride+el_stride+r_stride)*pn,
+  // NB: out and r have stricter alignments, so should be placed before el
+  occa::memory workspace = device.malloc((out_stride+r_stride+el_stride)*pn,
                                          occa::dtype::byte);
   occa::memory d_out_base = workspace; workspace += out_stride*pn;
-  occa::memory d_el_base  = workspace; workspace += el_stride*pn;
   occa::memory d_r_base   = workspace; workspace += r_stride*pn;
+  occa::memory d_el_base  = workspace; workspace += el_stride*pn;
   d_el_base.copyFrom(el_base, el_stride*pn);
   d_r_base .copyFrom(r_base,  r_stride*pn);
   // don't need to copy out to device if it will be entirely overwritten
@@ -133,13 +134,14 @@ void ogs_findpts_local_eval_3(
   occa::device device = *ogs_fd->device;
   occa::memory d_in = *(occa::memory*)in;
 
-  occa::memory workspace = device.malloc((out_stride+el_stride+r_stride)*pn,
+  // NB: out and r have stricter alignments, so should be placed before el
+  occa::memory workspace = device.malloc((out_stride+r_stride+el_stride)*pn,
                                          occa::dtype::byte);
   occa::memory d_out_base = workspace; workspace += out_stride*pn;
-  occa::memory d_el_base  = workspace; workspace += el_stride*pn;
   occa::memory d_r_base   = workspace; workspace += r_stride*pn;
-  d_el_base.copyFrom(el_base, el_stride*pn);
+  occa::memory d_el_base  = workspace; workspace += el_stride*pn;
   d_r_base .copyFrom(r_base,  r_stride*pn);
+  d_el_base.copyFrom(el_base, el_stride*pn);
   // don't need to copy out to device if it will be entirely overwritten
   if (out_stride != sizeof(dfloat)) {
     d_out_base.copyFrom(out_base, out_stride*pn);
