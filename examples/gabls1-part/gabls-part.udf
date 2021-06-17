@@ -17,8 +17,13 @@
 
 #define USE_HOST_FINDPTS false
 #define CHECK_ACCURACY   false
+#define MIGRATE_PARTICLES true
+#define LOCAL_EVAL        true
 
 #define OUT_CHUNK_SIZE 10000 /* chunk size for outputing particles */
+
+
+static_assert(!LOCAL_EVAL || MIGRATE_PARTICLES, "Cannot use local eval's if particles are not being migrated");
 
 struct gabls_particle_data {
   dfloat v_hist[2][D];
@@ -87,7 +92,9 @@ void particle_init(particle_set<D,gabls_particle_data>& particles) {
 void particle_advect_std(particle_set<D,gabls_particle_data>& particles, int tstep) {
 
   particles.find();
-  particles.migrate();
+  if (MIGRATE_PARTICLES) {
+    particles.migrate();
+  }
 
   // Run on either occa, host, or both
   // If both, compare the difference in the computed values
@@ -101,11 +108,19 @@ void particle_advect_std(particle_set<D,gabls_particle_data>& particles, int tst
   if (!USE_HOST_FINDPTS || CHECK_ACCURACY) {
     u_occa = u_base_next; u_base_next += D;
     occa::memory o_U = particles.nrs->o_U.cast(occa::dtype::get<dfloat>());
-    particles.interp_local(o_U, u_occa, D);
+    if (LOCAL_EVAL) {
+      particles.interp_local(o_U, u_occa, D);
+    } else {
+      particles.interp(o_U, u_occa, D);
+    }
   }
   if (USE_HOST_FINDPTS || CHECK_ACCURACY) {
     u_host = u_base_next;
-    particles.interp_local(particles.nrs->U, u_host, D);
+    if (LOCAL_EVAL) {
+      particles.interp_local(particles.nrs->U, u_host, D);
+    } else {
+      particles.interp(particles.nrs->U, u_host, D);
+    }
   }
   if (CHECK_ACCURACY) {
     // controls the tolerences for printing warnings
@@ -301,10 +316,11 @@ void UDF_Setup(nrs_t *nrs)
   udf.uEqnSource = &userf;
 
   int mpi_rank = platform_t::getInstance()->comm.mpiRank;
-  int mpi_size = platform_t::getInstance()->comm.mpiCommSize;
   if (mpi_rank == 0) {
     std::cout << "Particle config: " << PART_K << "x" << PART_M << "x" << PART_N << " particle grid "
-                                     << "with " << (USE_HOST_FINDPTS ? "host" : "OCCA") << " findpts" << std::endl;
+                                     << "with "
+                                        << (MIGRATE_PARTICLES ? "particle migration and " : "")
+                                        << (USE_HOST_FINDPTS ? "host" : "OCCA") << (LOCAL_EVAL ? " local" : "") << " findpts_eval" << std::endl;
   }
 }
 
