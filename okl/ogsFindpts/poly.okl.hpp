@@ -356,75 +356,104 @@ static const dfloat gllz_24[24] = {
 //  gllz_20, gllz_21, gllz_22, gllz_23, gllz_24
 //};
 
-void lagrange_eval(@restrict dfloat * p0,
-                   @restrict const dfloat * data,
-                   dlong n,
-                   dlong der,
-                   dfloat x,
-                   dlong i){
+void lagrange_eval_get_zw(@restrict const dfloat * data,
+                          const dfloat ** w, const dfloat ** z){
+  *w = data;
+  switch(n){
+    case  2: *z = gllz_02; break;
+    case  3: *z = gllz_03; break;
+    case  4: *z = gllz_04; break;
+    case  5: *z = gllz_05; break;
+    case  6: *z = gllz_06; break;
+    case  7: *z = gllz_07; break;
+    case  8: *z = gllz_08; break;
+    case  9: *z = gllz_09; break;
+    case 10: *z = gllz_10; break;
+    case 11: *z = gllz_11; break;
+    case 12: *z = gllz_12; break;
+    case 13: *z = gllz_13; break;
+    case 14: *z = gllz_14; break;
+    case 15: *z = gllz_15; break;
+    case 16: *z = gllz_16; break;
+    case 17: *z = gllz_17; break;
+    case 18: *z = gllz_18; break;
+    case 19: *z = gllz_19; break;
+    case 20: *z = gllz_20; break;
+    case 21: *z = gllz_21; break;
+    case 22: *z = gllz_22; break;
+    case 23: *z = gllz_23; break;
+    case 24: *z = gllz_24; break;
+    default: *z = data; *w = z+n;
+  }
+}
+
+void lagrange_eval_1(@restrict const dfloat * data,
+                     dlong n_,
+                     @restrict dfloat * dist,
+                     dfloat x,
+                     dlong i){
+#if p_NR == p_NS && p_NR == p_NT
+  dlong n = p_NR;
+#else
+  dlong n = n_;
+#endif
   if(i<n){
     const dfloat *z, *w;
-    w = data;
-    switch(n){
-      case  2: z = gllz_02; break;
-      case  3: z = gllz_03; break;
-      case  4: z = gllz_04; break;
-      case  5: z = gllz_05; break;
-      case  6: z = gllz_06; break;
-      case  7: z = gllz_07; break;
-      case  8: z = gllz_08; break;
-      case  9: z = gllz_09; break;
-      case 10: z = gllz_10; break;
-      case 11: z = gllz_11; break;
-      case 12: z = gllz_12; break;
-      case 13: z = gllz_13; break;
-      case 14: z = gllz_14; break;
-      case 15: z = gllz_15; break;
-      case 16: z = gllz_16; break;
-      case 17: z = gllz_17; break;
-      case 18: z = gllz_18; break;
-      case 19: z = gllz_19; break;
-      case 20: z = gllz_20; break;
-      case 21: z = gllz_21; break;
-      case 22: z = gllz_22; break;
-      case 23: z = gllz_23; break;
-      case 24: z = gllz_24; break;
-      default: z = data; w = z+n;
-    }
+    lagrange_eval_get_zw(data, &z, &w);
+
+    dist[i] = x-z[i];
+  }
+}
+
+void lagrange_eval_2(@restrict dfloat * p0,
+                     @restrict const dfloat * data,
+                     dlong n,
+                     dlong der,
+                     @restrict dfloat * dist
+                     dlong i){
+#if p_NR == p_NS && p_NR == p_NT
+  dlong n = p_NR;
+#else
+  dlong n = n_;
+#endif
+  if(i<n){
+    const dfloat *z, *w;
+    lagrange_eval_get_zw(data, &z, &w);
+
     if(der==0) {
       // for(j=0; j<n; ++j) if(i!=j) p_i *= 2*(x-z[j])
-      dfloat p_i = (1 << (n-1));
+      dfloat u_0=1;
       for(dlong j=0;j<n;++j){
-        dfloat d_j = x-z[j];
-        p_i *= j==i ? 1 : d_j;
+        dfloat d_j = dist[j];
+        u_0 *= j==i ? 1 : d_j;
       }
-      p0[i] = w[i] * p_i;
+      p0[i] = w[i]*u_0*(1 << (n-1));;
     } else if(der==1) {
       dfloat u0=1, u1=0;
       for(dlong j=0;j<n;++j){
+        dfloat d_j = dist[j];
         if(i!=j){
-          dfloat d_j = 2*(x-z[j]);
           u1 = d_j*u1+u0;
           u0 = d_j*u0;
         }
       }
       dfloat *p1 = p0+n;
-      p0[i] =   w[i]*u0;
-      p1[i] = 2*w[i]*u1;
+      p0[i] =   w[i]*u0*(1 << (n-1));
+      p1[i] = 2*w[i]*u1*(1 << (n-1));
     } else {
       dfloat u0=1, u1=0, u2=0;
       for(dlong j=0;j<n;++j){
+        dfloat d_j = dist[j];
         if(i!=j){
-          dfloat d_j = 2*(x-z[j]);
           u2 = d_j*u2 + u1;
           u1 = d_j*u1 + u0;
           u0 = d_j*u0;
         }
       }
       dfloat *p1 = p0+n, *p2 = p0+2*n;
-      p0[i]=  w[i]*u0;
-      p1[i]=2*w[i]*u1;
-      p2[i]=8*w[i]*u2;
+      p0[i]=  w[i]*u0*(1 << (n-1));
+      p1[i]=2*w[i]*u1*(1 << (n-1));
+      p2[i]=8*w[i]*u2*(1 << (n-1));
     }
   }
 }

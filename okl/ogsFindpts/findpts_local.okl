@@ -945,10 +945,10 @@ dfloat tensor_ig3_j(      dfloat *g_partials,
   for (dlong i = 0; i < npt; ++i; @outer) {
     // OCCA can't used constexpr's for shared variable sizes
     #define MAX_N (MAX_CONST(p_NR, MAX_CONST(p_NS, p_NT)))
-    // workspace = max(p_NR*(p_D+1),                               // seed
-    //                 (p_NR+1)*(p_D+p_D*p_D)+2*(p_NR+p_NS+p_NT),  // findpt_vol
-    //                 (2*p_D+p_D*p_D)*(MAX_N+1)+p_D*2*MAX_N,      // findpt_area / findpt_face
-    //                 p_D+2*p_D*p_D+(p_D+1)*(2*p_D-1)+p_D*MAX_N)) // findpt_edge
+    // workspace = max(p_NR*(p_D+1),                                        // seed
+    //                 (MAX_N+1)*(p_D+p_D*p_D)+2*(p_NR+p_NS+p_NT),          // findpt_vol
+    //                 (2*p_D+p_D*p_D)*(MAX_N+1)+p_D*2*MAX_N,               // findpt_area / findpt_face
+    //                 max(p_D+2*p_D*p_D+(p_D+1)*(2*p_D-1),MAX_N)+3*MAX_N)) // findpt_edge
     @shared dfloat r_workspace[MAX_CONST(4, MAX_N+1)*(p_D*p_D+2*p_D) + p_D*2*MAX_N];
     @shared findpts_el_pt el_pts[2];
 
@@ -1045,12 +1045,20 @@ dfloat tensor_ig3_j(      dfloat *g_partials,
                   dfloat *resid_temp = jac + 9;
                   dfloat *jac_temp   = resid_temp + 3*p_NR;
 
+                  // NB overlaps with other shared memory
+                  dfloat *dist_0 = wtt + p_NT;
+                  dfloat *dist_1 = wtt + p_NR;
+                  dfloat *dist_2 = wtt + p_NS;
                   for(dlong j=0;j<INNER_SIZE;++j;@inner){
-                    // need to compute 1st derivatives
-                    lagrange_eval(wtr, fd->fed.lag_data[0], p_NR, 1, tmp->r[0], j);
-                    lagrange_eval(wts, fd->fed.lag_data[1], p_NS, 1, tmp->r[1], j);
-                    lagrange_eval(wtt, fd->fed.lag_data[2], p_NT, 1, tmp->r[2], j);
-                  }    
+                    lagrange_eval_1(     fd->fed.lag_data[0], p_NR,    dist_0, r[0], j);
+                    lagrange_eval_1(     fd->fed.lag_data[1], p_NS,    dist_1, r[1], j);
+                    lagrange_eval_1(     fd->fed.lag_data[2], p_NT,    dist_2, r[2], j);
+                  }
+                  for(dlong j=0;j<INNER_SIZE;++j;@inner){
+                    lagrange_eval_2(wtr, fd->fed.lag_data[0], p_NR, 1, dist_0,       j);
+                    lagrange_eval_2(wts, fd->fed.lag_data[1], p_NS, 1, dist_1,       j);
+                    lagrange_eval_2(wtt, fd->fed.lag_data[2], p_NT, 1, dist_2,       j);
+                  }
                   for (dlong j = 0; j < INNER_SIZE; ++j;@inner) {
                     if(j<p_NR){
                       for(dlong d=0;d<3;++d){
@@ -1100,10 +1108,17 @@ dfloat tensor_ig3_j(      dfloat *g_partials,
                   dfloat *hes      = jac_temp + p_D*p_D*n1;
                   dfloat *hes_temp = hes + p_D;
 #endif
+
+                  // NB dist overlaps with other shared memory
+                  dfloat *dist_1 = wt2    + (der+1)*n2;
+                  dfloat *dist_2 = dist_1 + n1;
                   for(dlong j=0;j<INNER_SIZE;++j;@inner){
-                    // need to compute 1st derivatives
-                    lagrange_eval(wt1, fd->fed.lag_data[d1], n1, der, tmp->r[d1], j);
-                    lagrange_eval(wt2, fd->fed.lag_data[d2], n2, der, tmp->r[d2], j);
+                    lagrange_eval_1(     fd->fed.lag_data[d1], n1,      dist_1, tmp->r[d1], j);
+                    lagrange_eval_1(     fd->fed.lag_data[d2], n2,      dist_2, tmp->r[d2], j);
+                  }
+                  for(dlong j=0;j<INNER_SIZE;++j;@inner){
+                    lagrange_eval_2(wt1, fd->fed.lag_data[d1], n1, der, dist_1,             j);
+                    lagrange_eval_2(wt2, fd->fed.lag_data[d2], n2, der, dist_2,             j);
                   }
                   dfloat *J1 = wt1, *D1 = wt1+n1;
                   dfloat *J2 = wt2, *D2 = wt2+n2;
@@ -1206,8 +1221,13 @@ dfloat tensor_ig3_j(      dfloat *g_partials,
 #else
                   const dfloat* const* e_x[p_D+1] = {edge.x, edge.x, edge.dxdn1};
 #endif
+                  // NB overlaps with other shared memory
+                  dfloat *dist_1 = wt + 3*n1;
                   for(dlong j=0;j<INNER_SIZE;++j;@inner){
-                    lagrange_eval(wt, fd->fed.lag_data[de], n1, 2, tmp->r[de], j);
+                    lagrange_eval_1(    fd->fed.lag_data[de], n1,    dist_1, tmp->r[de], j);
+                  }
+                  for(dlong j=0;j<INNER_SIZE;++j;@inner){
+                    lagrange_eval_2(wt, fd->fed.lag_data[de], n1, 2, dist_1,             j);
                   }
 
                   for(dlong j=0;j<INNER_SIZE;++j;@inner){

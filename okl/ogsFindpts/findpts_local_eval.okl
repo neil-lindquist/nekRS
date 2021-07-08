@@ -13,16 +13,20 @@
 
     @shared dfloat wtr[p_NR];
     @shared dfloat wts[p_NS];
-    @shared dfloat sums[p_NR];
+    @shared dfloat tmp_0[p_NR];
+    @shared dfloat tmp_1[p_NS];
 
     const dlong el = *CAT(dlong, el, i);
     const dfloat *in_el = in + el*in_stride;
 
     const dfloat * r = CAT(dfloat, r, i);
-    for(dlong j= 0;j<INNER_SIZE;++j;@inner){
-
-      lagrange_eval(wtr, fd->fed.lag_data[0], p_NR, 0, r[0], j);
-      lagrange_eval(wts, fd->fed.lag_data[1], p_NS, 0, r[1], j);
+    for(dlong j=0;j<INNER_SIZE;++j;@inner){
+      lagrange_eval_1(     fd->fed.lag_data[0], p_NR,    tmp_0, r[0], j);
+      lagrange_eval_1(     fd->fed.lag_data[1], p_NS,    tmp_1, r[1], j);
+    }
+    for(dlong j=0;j<INNER_SIZE;++j;@inner){
+      lagrange_eval_2(wtr, fd->fed.lag_data[0], p_NR, 0, tmp_0,       j);
+      lagrange_eval_2(wts, fd->fed.lag_data[1], p_NS, 0, tmp_1,       j);
     }
 
     // out[i] = sum_j sum_k wts[j]*wtr[k]*in[j + k*nr]
@@ -34,68 +38,68 @@
         for(dlong k=0;k<p_NS;++k){
           sum += in_el_j[k*p_NR] * wts[k];
         }
-        sums[j] = wtr[j]*sum;
+        tmp_0[j] = wtr[j]*sum;
       }else{
-        sums[j] = 0.0;
+        tmp_0[j] = 0.0;
       }
     }
-    dfloat * out = AT(dfloat, out, i);
 // p_NR is assumed to be at most 256
 #if p_NR>128
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<128&&j<p_NR-128){
-        sums[j] += sums[j+128];
+        tmp_0[j] += tmp_0[j+128];
       }
     }
 #endif
 #if p_NR>64
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<64&&j<p_NR-64){
-        sums[j] += sums[j+64];
+        tmp_0[j] += tmp_0[j+64];
       }
     }
 #endif
 #if p_NR>32
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<32&&j<p_NR-32){
-        sums[j] += sums[j+32];
+        tmp_0[j] += tmp_0[j+32];
       }
     }
 #endif
 #if p_NR>16
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<16&&j<p_NR-16){
-        sums[j] += sums[j+16];
+        tmp_0[j] += tmp_0[j+16];
       }
     }
 #endif
 #if p_NR>8
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<8&&j<p_NR-8){
-        sums[j] += sums[j+8];
+        tmp_0[j] += tmp_0[j+8];
       }
     }
 #endif
 #if p_NR>4
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<4&&j<p_NR-4){
-        sums[j] += sums[j+4];
+        tmp_0[j] += tmp_0[j+4];
       }
     }
 #endif
 #if p_NR>2
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<2&&j<p_NR-2){
-        sums[j] += sums[j+2];
+        tmp_0[j] += tmp_0[j+2];
       }
     }
 #endif
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j==0){
+        dfloat * out = AT(dfloat, out, i);
         if(1<p_NR){
-          *out = sums[0] + sums[1];
+          *out = tmp_0[0] + tmp_0[1];
         }else{
-          *out = sums[0];
+          *out = tmp_0[0];
         }
       }
     }
@@ -115,17 +119,23 @@
     @shared dfloat wtr[p_NR];
     @shared dfloat wts[p_NS];
     @shared dfloat wtt[p_NT];
-    @shared dfloat sums[p_NR];
+    @shared dfloat tmp_0[p_NR];
+    @shared dfloat tmp_1[p_NS];
+    @shared dfloat tmp_2[p_NT];
 
     const dlong el = *CAT(dlong, el, i);
     const dfloat *in_el = in + el*in_stride;
 
     const dfloat * r = CAT(dfloat, r, i);
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
-
-      lagrange_eval(wtr, fd->fed.lag_data[0], p_NR, 0, r[0], j);
-      lagrange_eval(wts, fd->fed.lag_data[1], p_NS, 0, r[1], j);
-      lagrange_eval(wtt, fd->fed.lag_data[2], p_NT, 0, r[2], j);
+      lagrange_eval_1(     fd->fed.lag_data[0], p_NR,    tmp_0, r[0], j);
+      lagrange_eval_1(     fd->fed.lag_data[1], p_NS,    tmp_1, r[1], j);
+      lagrange_eval_1(     fd->fed.lag_data[2], p_NT,    tmp_2, r[2], j);
+    }
+    for(dlong j=0;j<INNER_SIZE;++j;@inner){
+      lagrange_eval_2(wtr, fd->fed.lag_data[0], p_NR, 0, tmp_0,       j);
+      lagrange_eval_2(wts, fd->fed.lag_data[1], p_NS, 0, tmp_1,       j);
+      lagrange_eval_2(wtt, fd->fed.lag_data[2], p_NT, 0, tmp_2,       j);
     }
 
     // out[i] = sum_j sum_k sum_l wtr[j]*wts[k]*wtt[l]*in[j + k*nr + l*nr*ns]
@@ -143,68 +153,68 @@
           }
           sum_j += wts[k]*sum_k;
         }
-        sums[j] = wtr[j]*sum_j;
+        tmp_0[j] = wtr[j]*sum_j;
       }else{
-        sums[j] = 0.0;
+        tmp_0[j] = 0.0;
       }
     }
-    dfloat * out = AT(dfloat, out, i);
 // p_NR is assumed to be at most 256
 #if p_NR>128
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<128&&j<p_NR-128){
-        sums[j] += sums[j+128];
+        tmp_0[j] += tmp_0[j+128];
       }
     }
 #endif
 #if p_NR>64
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<64&&j<p_NR-64){
-        sums[j] += sums[j+64];
+        tmp_0[j] += tmp_0[j+64];
       }
     }
 #endif
 #if p_NR>32
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<32&&j<p_NR-32){
-        sums[j] += sums[j+32];
+        tmp_0[j] += tmp_0[j+32];
       }
     }
 #endif
 #if p_NR>16
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<16&&j<p_NR-16){
-        sums[j] += sums[j+16];
+        tmp_0[j] += tmp_0[j+16];
       }
     }
 #endif
 #if p_NR>8
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<8&&j<p_NR-8){
-        sums[j] += sums[j+8];
+        tmp_0[j] += tmp_0[j+8];
       }
     }
 #endif
 #if p_NR>4
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<4&&j<p_NR-4){
-        sums[j] += sums[j+4];
+        tmp_0[j] += tmp_0[j+4];
       }
     }
 #endif
 #if p_NR>2
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<2&&j<p_NR-2){
-        sums[j] += sums[j+2];
+        tmp_0[j] += tmp_0[j+2];
       }
     }
 #endif
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j==0){
+        dfloat * out = AT(dfloat, out, i);
         if(1<p_NR){
-          *out = sums[0] + sums[1];
+          *out = tmp_0[0] + tmp_0[1];
         }else{
-          *out = sums[0];
+          *out = tmp_0[0];
         }
       }
     }
