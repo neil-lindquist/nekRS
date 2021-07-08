@@ -38,16 +38,24 @@ void ogs_findpts_local_2(    uint   *const  code_base   , const unsigned  code_s
   occa::memory    d_el_base = workspace; workspace +=   sizeof(dlong) *pn;
   occa::memory     d_r_base = workspace; workspace += 2*sizeof(dfloat)*pn;
   occa::memory d_dist2_base = workspace; workspace +=   sizeof(dfloat)*pn;
-  occa::memory     d_x_base = workspace; workspace += 2*sizeof(dfloat*);
   occa::memory    d_x0_base = workspace; workspace +=  x_stride[0]*pn;
   occa::memory    d_x1_base = workspace; workspace +=  x_stride[1]*pn;
   occa::memory   d_x_stride = workspace; workspace += 2*sizeof(dlong);
+  occa::memory     d_x_base = workspace; workspace += 2*sizeof(dfloat*);
 
-  dfloat *x_base_d[2] = {(double*)d_x0_base.ptr(), (double*)d_x1_base.ptr()};
-  d_x_base.copyFrom(x_base_d, 2*sizeof(dfloat*));
   d_x0_base.copyFrom(x_base[0], x_stride[0]*pn);
   d_x1_base.copyFrom(x_base[1], x_stride[1]*pn);
-  d_x_stride.copyFrom(x_stride, 2*sizeof(dlong));
+
+  struct x_ptr_and_stride {
+    dfloat *x0, *x1;
+    dlong stride0, stride1;
+  };
+  x_ptr_and_stride x_pas;
+  x_pas.x0 = (double*)d_x0_base.ptr();
+  x_pas.x1 = (double*)d_x1_base.ptr();
+  x_pas.stride0 = x_stride[0];
+  x_pas.stride1 = x_stride[1];
+  d_x_base.copyFrom(&x_pas, 2*sizeof(dfloat*)+2*sizeof(dlong));
 
   ogs_fd->local_kernel( d_code_base,   sizeof(dlong),
                           d_el_base,   sizeof(dlong),
@@ -112,18 +120,28 @@ void ogs_findpts_local_3(    uint   *const  code_base   , const unsigned  code_s
   occa::memory    d_el_base = workspace; workspace +=   sizeof(dlong) *pn;
   occa::memory     d_r_base = workspace; workspace += 3*sizeof(dfloat)*pn;
   occa::memory d_dist2_base = workspace; workspace +=   sizeof(dfloat)*pn;
-  occa::memory     d_x_base = workspace; workspace += 3*sizeof(dfloat*);
   occa::memory    d_x0_base = workspace; workspace +=  x_stride[0]*pn;
   occa::memory    d_x1_base = workspace; workspace +=  x_stride[1]*pn;
   occa::memory    d_x2_base = workspace; workspace +=  x_stride[2]*pn;
+  occa::memory     d_x_base = workspace; workspace += 3*sizeof(dfloat*);
   occa::memory   d_x_stride = workspace; workspace += 3*sizeof(dlong);
 
-  dfloat *x_base_d[3] = {(double*)d_x0_base.ptr(), (double*)d_x1_base.ptr(), (double*)d_x2_base.ptr()};
-  d_x_base.copyFrom(x_base_d, 3*sizeof(dfloat*));
   d_x0_base.copyFrom(x_base[0], x_stride[0]*pn);
   d_x1_base.copyFrom(x_base[1], x_stride[1]*pn);
   d_x2_base.copyFrom(x_base[2], x_stride[2]*pn);
-  d_x_stride.copyFrom(x_stride, 3*sizeof(dlong));
+
+  struct x_ptr_and_stride {
+    dfloat *x0, *x1, *x2;
+    dlong stride0, stride1, stride2;
+  };
+  x_ptr_and_stride x_pas;
+  x_pas.x0 = (double*)d_x0_base.ptr();
+  x_pas.x1 = (double*)d_x1_base.ptr();
+  x_pas.x2 = (double*)d_x2_base.ptr();
+  x_pas.stride0 = x_stride[0];
+  x_pas.stride1 = x_stride[1];
+  x_pas.stride2 = x_stride[2];
+  d_x_base.copyFrom(&x_pas, 3*sizeof(dfloat*)+3*sizeof(dlong));
 
   ogs_fd->local_kernel( d_code_base,   sizeof(dlong),
                           d_el_base,   sizeof(dlong),
@@ -256,10 +274,6 @@ void ogs_findpts_local_eval_2(
   occa::memory d_r_base   = workspace; workspace += r_stride*pn;
   d_el_base.copyFrom(el_base, el_stride*pn);
   d_r_base .copyFrom(r_base,  r_stride*pn);
-  // don't need to copy out to device if it will be entirely overwritten
-  if (out_stride != sizeof(dfloat)) {
-    d_out_base.copyFrom(out_base, out_stride*pn);
-  }
 
   ogs_fd->local_eval_kernel(d_out_base,   out_stride,
                             d_el_base,    el_stride,
@@ -267,7 +281,14 @@ void ogs_findpts_local_eval_2(
                             pn, d_in, gs_fd->ntot,
                             ogs_fd->d_fd_local);
 
-  d_out_base.copyTo(out_base, out_stride*pn);
+  if(out_stride == sizeof(dfloat)) {
+    d_out_base.copyTo(out_base, sizeof(dfloat) *pn);
+  } else {
+    dfloat* h_out_base = new dfloat[pn];
+    h_out_base.copyTo(h_out_base, sizeof(dfloat)*pn);
+    for(dlong i=0;i<pn;++i) *AT(dfloat, out, i) =  h_out_base[i];
+    delete []  h_out_base;
+  }
 }
 
 void ogs_findpts_local_eval_3(
@@ -290,10 +311,6 @@ void ogs_findpts_local_eval_3(
   occa::memory d_el_base  = workspace; workspace += el_stride*pn;
   d_el_base.copyFrom(el_base, el_stride*pn);
   d_r_base .copyFrom(r_base,  r_stride*pn);
-  // don't need to copy out to device if it will be entirely overwritten
-  if (out_stride != sizeof(dfloat)) {
-    d_out_base.copyFrom(out_base, out_stride*pn);
-  }
 
   ogs_fd->local_eval_kernel(d_out_base,   out_stride,
                             d_el_base,    el_stride,
@@ -301,7 +318,14 @@ void ogs_findpts_local_eval_3(
                             pn, d_in, gs_fd->ntot,
                             ogs_fd->d_fd_local);
 
-  d_out_base.copyTo(out_base, out_stride*pn);
+  if(out_stride == sizeof(dfloat)) {
+    d_out_base.copyTo(out_base, sizeof(dfloat) *pn);
+  } else {
+    dfloat* h_out_base = new dfloat[pn];
+    h_out_base.copyTo(h_out_base, sizeof(dfloat)*pn);
+    for(dlong i=0;i<pn;++i) *AT(dfloat, out, i) =  h_out_base[i];
+    delete []  h_out_base;
+  }
 }
 
 }
