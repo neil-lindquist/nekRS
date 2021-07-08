@@ -1,7 +1,7 @@
 
 #define INNER_SIZE (p_NR > p_NS ? (p_NR > p_NT ? p_NR : p_NT) : (p_NS > p_NT ? p_NS : p_NT))
 
-@kernel void findpts_local_eval_2(
+@kernel void findpts_local_eval(
               dfloat * const out_base,   const dlong out_stride,
         const dlong  * const el_base,    const dlong el_stride,
         const dfloat * const r_base,     const dlong r_stride,
@@ -15,6 +15,10 @@
     @shared dfloat wts[p_NS];
     @shared dfloat tmp_0[p_NR];
     @shared dfloat tmp_1[p_NS];
+#if p_D == 3
+    @shared dfloat wtt[p_NT];
+    @shared dfloat tmp_2[p_NT];
+#endif
 
     const dlong el = *CAT(dlong, el, i);
     const dfloat *in_el = in + el*in_stride;
@@ -23,136 +27,35 @@
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       lagrange_eval_1(     fd->fed.lag_data[0], p_NR,    tmp_0, r[0], j);
       lagrange_eval_1(     fd->fed.lag_data[1], p_NS,    tmp_1, r[1], j);
+#if p_D == 3
+      lagrange_eval_1(     fd->fed.lag_data[2], p_NT,    tmp_2, r[2], j);
+#endif
     }
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       lagrange_eval_2(wtr, fd->fed.lag_data[0], p_NR, 0, tmp_0,       j);
       lagrange_eval_2(wts, fd->fed.lag_data[1], p_NS, 0, tmp_1,       j);
+#if p_D == 3
+      lagrange_eval_2(wtt, fd->fed.lag_data[2], p_NT, 0, tmp_2,       j);
+#endif
     }
 
     // out[i] = sum_j sum_k wts[j]*wtr[k]*in[j + k*nr]
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
       if(j<p_NR){
-        dfloat sum = 0;
-        const dfloat *in_el_j = in_el+j;
-
-        for(dlong k=0;k<p_NS;++k){
-          sum += in_el_j[k*p_NR] * wts[k];
-        }
-        tmp_0[j] = wtr[j]*sum;
-      }else{
-        tmp_0[j] = 0.0;
-      }
-    }
-// p_NR is assumed to be at most 256
-#if p_NR>128
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<128&&j<p_NR-128){
-        tmp_0[j] += tmp_0[j+128];
-      }
-    }
-#endif
-#if p_NR>64
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<64&&j<p_NR-64){
-        tmp_0[j] += tmp_0[j+64];
-      }
-    }
-#endif
-#if p_NR>32
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<32&&j<p_NR-32){
-        tmp_0[j] += tmp_0[j+32];
-      }
-    }
-#endif
-#if p_NR>16
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<16&&j<p_NR-16){
-        tmp_0[j] += tmp_0[j+16];
-      }
-    }
-#endif
-#if p_NR>8
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<8&&j<p_NR-8){
-        tmp_0[j] += tmp_0[j+8];
-      }
-    }
-#endif
-#if p_NR>4
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<4&&j<p_NR-4){
-        tmp_0[j] += tmp_0[j+4];
-      }
-    }
-#endif
-#if p_NR>2
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<2&&j<p_NR-2){
-        tmp_0[j] += tmp_0[j+2];
-      }
-    }
-#endif
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j==0){
-        dfloat * out = AT(dfloat, out, i);
-        if(1<p_NR){
-          *out = tmp_0[0] + tmp_0[1];
-        }else{
-          *out = tmp_0[0];
-        }
-      }
-    }
-  }
-}
-
-@kernel void findpts_local_eval_3(
-              dfloat * const out_base,   const dlong out_stride,
-        const dlong  * const el_base,    const dlong el_stride,
-        const dfloat * const r_base,     const dlong r_stride,
-        const dlong  pn,
-        @restrict const dfloat * const in, const dlong in_stride,
-        struct findpts_local_data *fd){
-
-  for(dlong i=0;i<pn;++i;@outer){
-
-    @shared dfloat wtr[p_NR];
-    @shared dfloat wts[p_NS];
-    @shared dfloat wtt[p_NT];
-    @shared dfloat tmp_0[p_NR];
-    @shared dfloat tmp_1[p_NS];
-    @shared dfloat tmp_2[p_NT];
-
-    const dlong el = *CAT(dlong, el, i);
-    const dfloat *in_el = in + el*in_stride;
-
-    const dfloat * r = CAT(dfloat, r, i);
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      lagrange_eval_1(     fd->fed.lag_data[0], p_NR,    tmp_0, r[0], j);
-      lagrange_eval_1(     fd->fed.lag_data[1], p_NS,    tmp_1, r[1], j);
-      lagrange_eval_1(     fd->fed.lag_data[2], p_NT,    tmp_2, r[2], j);
-    }
-    for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      lagrange_eval_2(wtr, fd->fed.lag_data[0], p_NR, 0, tmp_0,       j);
-      lagrange_eval_2(wts, fd->fed.lag_data[1], p_NS, 0, tmp_1,       j);
-      lagrange_eval_2(wtt, fd->fed.lag_data[2], p_NT, 0, tmp_2,       j);
-    }
-
-    // out[i] = sum_j sum_k sum_l wtr[j]*wts[k]*wtt[l]*in[j + k*nr + l*nr*ns]
-    //        = sum_j wtr[j] * sum_k wts[k] * sum_l wtt[l]*in[j + k*nr + l*nr*ns]
-    for (dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j<p_NR){
         dfloat sum_j = 0;
         const dfloat *in_el_j = in_el+j;
+
         for(dlong k=0;k<p_NS;++k){
+#if p_D == 3
           dfloat sum_k = 0;
           const dfloat *in_el_jk = in_el_j+k*p_NR;
-
           for(dlong l=0;l<p_NT;++l){
             sum_k += in_el_jk[l*p_NR*p_NS] * wtt[l];
           }
           sum_j += wts[k]*sum_k;
-        }
+#else
+          sum_j += in_el_j[k*p_NR] * wts[k];
+#endif
         tmp_0[j] = wtr[j]*sum_j;
       }else{
         tmp_0[j] = 0.0;
