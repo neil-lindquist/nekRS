@@ -220,6 +220,7 @@ set(SRC
     src/plugins/velRecycling.cpp
     src/plugins/RANSktau.cpp
     src/plugins/lowMach.cpp
+    src/neknek/neknek.cpp
     src/udf/udf.cpp
     src/nekInterface/nekInterfaceAdapter.cpp
     src/interp/interp.cpp
@@ -266,6 +267,7 @@ target_include_directories(nekrs-lib
   src/timeStepper
   src/lns
   src/cds
+  src/neknek
   src/interp
   src/ogsFindpts
   ${MESH_SOURCE_DIR}
