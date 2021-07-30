@@ -315,7 +315,6 @@ c-----------------------------------------------------------------------
 
       integer*8 ntags
 
-c     write(6,*) 'TMP: nekf_setupcomm'
       call mpi_initialized(mpi_is_initialized, ierr)
       if (.not.mpi_is_initialized) call mpi_init(ierr)
 
@@ -349,7 +348,6 @@ c     write(6,*) 'TMP: nekf_setupcomm'
          idsess    = idsess_in
       endif
  
-
       return
       end
 c-------------------------------------------------------------
