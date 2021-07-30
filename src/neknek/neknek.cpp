@@ -114,55 +114,42 @@ void neknek_setup(nrs_t *nrs)
                                        &device);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  printf("TMP: processing b/c\n");
 
+  constexpr dlong faceMap[6] = {5, 0, 1, 2, 3, 4};
 
   dlong num_interp_faces = 0;
   dlong *intflag = (dlong*)nek::ptr("intflag");
-  printf("TMP: intflag %d, %d\n", nfac, 1);
   for (dlong e = 0; e < nelm; ++e) {
     for (dlong f = 0; f < nfac; ++f) {
-      num_interp_faces += intflag[f+nfac*e]!=0;
-      if(intflag[f+nfac*e]) {
-        printf("TMP: found int at %d,%d (%p)\n", e,f, &intflag[f+nfac*e]);
-      }
+      num_interp_faces += intflag[faceMap[f]+nfac*e]!=0;
     }
   }
-  dlong num_interp_bounds = num_interp_faces*mesh->Nfp;
+  dlong num_interp_bounds = num_interp_faces*nfpt;
   reserveAllocation(nrs, num_interp_bounds);
 
   dfloat *interp_x = new dfloat[num_interp_bounds*D];
   dlong ip = 0;
+  std::fill(neknek->point_map, neknek->point_map+nrs->fieldOffset, -1);
   for (dlong e = 0; e < nelm; ++e) {
     for (dlong f = 0; f < nfac; ++f) {
-      if (intflag[f+nfac*e]) {
-        printf("TMP: marking %d,%d (id=%d-%d)\n", e,f, nfac*nfpt*e + nfpt*f, nfac*nfpt*e + nfpt*f+nfpt-1);
-      }
       
       for(dlong m = 0; m < nfpt; ++m) {
         dlong id = nfac*nfpt*e + nfpt*f + m;
         dlong idM = mesh->vmapM[id];
 
-        if (intflag[f+nfac*e]) {
-          if(ip < 4) {
-            printf("TMP: marking %d: %e,%e,%e\n", idM, elx[0][idM], elx[1][idM], elx[2][idM]);
-          }
+        if (intflag[faceMap[f]+nfac*e]) {
           for(dlong d = 0; d<D; ++d) {
             interp_x[ip + d*num_interp_bounds] = elx[d][idM];
           }
           neknek->point_map[idM] = ip;
           ++ip;
-        } else {
-            neknek->point_map[idM] = -1;
         }
       }
     }
   }
-  printf("TMP: %d/%d interp points\n", neknek->npt, ip);
   neknek->point_map[nrs->fieldOffset] = neknek->npt;
   neknek->o_point_map.copyFrom(neknek->point_map);
 
-  std::cout << "TMP: findpts" << std::endl;
   dfloat *ralloc_temp = new dfloat[num_interp_bounds*(2+D)];
   dfloat *dist2      = ralloc_temp; ralloc_temp +=   num_interp_bounds;
   dfloat *dist2_temp = ralloc_temp; ralloc_temp +=   num_interp_bounds;
@@ -184,7 +171,6 @@ void neknek_setup(nrs_t *nrs)
   dfloat *interp_x_nul[3] = {nullptr, nullptr, nullptr};
   dlong   interp_x_str[3] = {1*sizeof(dfloat), 1*sizeof(dfloat), 1*sizeof(dfloat)};
   for(dlong sess = 0; sess < nsessions; ++sess) {
-    std::cout << "TMP: calling findpts for session " << sess << std::endl;
     ogsFindpts( code_temp,   1*sizeof(dlong),
                 proc_temp,   1*sizeof(dlong),
                   el_temp,   1*sizeof(dlong),
@@ -194,16 +180,11 @@ void neknek_setup(nrs_t *nrs)
                (sess==sessionID)?0:num_interp_bounds,
                ogs_handles[sess]);
 
-    std::cout << "TMP: checking usability" << std::endl;
     if(sess!=sessionID) {
       for(dlong i = 0; i < num_interp_bounds; ++i) {
-        if (i < 4) {
-          printf("TMP: i=%d,x=[%e,%e,%e],code=%d,dist=%e,proc=%d\n", i, interp_x_arr[0][i], interp_x_arr[1][i], interp_x_arr[2][i], code_temp[i], dist2_temp[i], proc_temp[i]);
-        }
         // TODO review this condition
         // ideally should find point farthest from a boundary
         if((code_temp[i] == 0 || code_temp[i] == 1) && dist2[i] > dist2_temp[i]){
-          if(i < 4) printf("TMP: setting %d from element in session %d (%d, %e, %d)\n", i, sess, code_temp[i], dist2_temp[i], proc_temp[i]);
           neknek->code[i] =  code_temp[i];
                  dist2[i] = dist2_temp[i];
           neknek->proc[i] =  proc_temp[i];
@@ -218,17 +199,14 @@ void neknek_setup(nrs_t *nrs)
   // TODO add warning prints
 
 
-  std::cout << "TMP: cleanup extra handles" << std::endl;
   for(dlong i = 0; i < nsessions; ++i) {
     ogsFindptsFree(ogs_handles[i]);
   }
 
-  std::cout << "TMP: cleanup temp buffers" << std::endl;
   delete [] interp_x;
   delete [] dist2;     //ralloc_temp;
   delete [] proc_temp; //ialloc_temp;
 
-  std::cout << "TMP: setup complete" << std::endl;
 }
 
 static void field_eval(nrs_t *nrs, dlong field, occa::memory in) {
@@ -245,7 +223,6 @@ static void field_eval(nrs_t *nrs, dlong field, occa::memory in) {
                  neknek->npt, in,
                  neknek->ogs_handle);
 
-  printf("field %d: *%p = [%e, %e, %e, %e, ...]\n", field, out, out[0], out[1], out[2], out[3]);
 }
 
 void neknek_update_boundary(nrs_t *nrs)

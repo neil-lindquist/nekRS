@@ -170,7 +170,6 @@ void step(nrs_t* nrs, dfloat time, dfloat dt, int tstep)
     platform->device.finish();
     MPI_Barrier(platform->comm.mpiComm);
     const double tStartStep = MPI_Wtime();
-    printf("TMP: stage = %d\n", stage);
      
     const dfloat timeNew = time + nrs->dt[0]; 
 

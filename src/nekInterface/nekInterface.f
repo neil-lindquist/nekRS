@@ -314,8 +314,7 @@ c-----------------------------------------------------------------------
 
       integer*8 ntags
 
-      write(6,*) 'TMP: nekf_setupcomm'
-
+c     write(6,*) 'TMP: nekf_setupcomm'
       call mpi_initialized(mpi_is_initialized, ierr)
       if (.not.mpi_is_initialized) call mpi_init(ierr)
 
@@ -354,7 +353,6 @@ c-----------------------------------------------------------------------
       session = session_in
       path    = path_in
       amgfile  = session
-      write(6,*) 'TMP: done'
 
       return
       end
@@ -363,8 +361,6 @@ c-------------------------------------------------------------
 
       include 'SIZE'
       include 'TOTAL'
-
-      write(6,*) 'TMP: nekf_neknek_setup', ifneknek
 
       if(.not.ifneknek) return
 
@@ -375,8 +371,6 @@ c-------------------------------------------------------------
 
       call set_intflag
       call neknekmv
-
-      write(6,*) 'TMP: done'
 
       return
       end

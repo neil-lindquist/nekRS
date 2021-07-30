@@ -594,13 +594,11 @@ int setup(MPI_Comm c, setupAide &options_in, nrs_t* nrs_in)
   dlong nsessions = nrs->neknek->nsessions;
   dlong sessionID = nrs->neknek->sessionID;
 
-  printf("  TMP: calling setup\n"); 
   (*nek_setup_ptr)(&nek_comm, (char*)cwd.c_str(), (char*)casename.c_str(),
                    &flow, &nscal, &nBcRead, &meshPartType,
 		   &rho, &mue, &rhoCp, &lambda, 
                    &ifneknekc, &nsessions, &sessionID, 
                    cwd.length(), casename.length());
-  printf("  TMP: done\n"); 
 
   nekData.param = (double*) ptr("param");
   nekData.ifield = (int*) ptr("ifield");
