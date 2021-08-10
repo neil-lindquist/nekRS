@@ -227,9 +227,9 @@ set(SRC
     src/plugins/velRecycling.cpp
     src/plugins/RANSktau.cpp
     src/plugins/lowMach.cpp
+    src/plugins/interp.cpp
     src/udf/udf.cpp
     src/nekInterface/nekInterfaceAdapter.cpp
-    src/interp/interp.cpp
     src/ogsFindpts/ogsFindpts.cpp
     src/ogsFindpts/ogs_findpts_local.cpp
     src/ogsFindpts/ogs_findpts.c
@@ -277,7 +277,6 @@ target_include_directories(nekrs-lib
   src/timeStepper
   src/lns
   src/cds
-  src/interp
   src/ogsFindpts
   ${MESH_SOURCE_DIR}
   ${NEKINTERFACEDIR}
