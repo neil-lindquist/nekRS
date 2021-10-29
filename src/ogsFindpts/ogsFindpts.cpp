@@ -29,8 +29,10 @@ SOFTWARE.
 #include "ogstypes.h"
 #include "ogs_FINDPTS.hpp"
 #include "ogsInterface_FINDPTS.h"
-#include "ogsKernels_FINDPTS.hpp"
+#include "ogsKernels.hpp"
+#include "platform.hpp"
 #include "gslib.h"
+#include <cfloat>
 
 // need to access internals of findpts_data structs
 struct hash_data_2 {
@@ -62,6 +64,55 @@ uint findpts_local_hash_opt_size_2(struct findpts_local_hash_data_2 *p,
 uint findpts_local_hash_opt_size_3(struct findpts_local_hash_data_3 *p,
                                const struct obbox_3 *const obb, const uint nel,
                                const uint max_size);
+}
+
+std::pair<occa::kernel, occa::kernel> ogs::initFindptsKernel()
+{
+
+  platform_t* platform = platform_t::getInstance();
+  dlong N;
+  platform->options.getArgs("POLYNOMIAL DEGREE", N);
+  MPI_Comm comm = platform->comm.mpiComm;
+  occa::device device = platform->device;
+
+  std::string oklDir;
+  oklDir.assign(getenv("NEKRS_INSTALL_DIR"));
+  oklDir += "/okl/ogsFindpts/";
+
+  occa::properties kernelInfo;
+  kernelInfo["defines"].asObject();
+  kernelInfo["includes"].asArray();
+  kernelInfo["header"].asArray();
+  kernelInfo["flags"].asObject();
+
+  kernelInfo["defines/ " "p_D"]  = 3;
+  kernelInfo["defines/ " "p_NR"] = N;
+  kernelInfo["defines/ " "p_NS"] = N;
+  kernelInfo["defines/ " "p_NT"] = N;
+  kernelInfo["defines/ " "dlong"] = dlongString;
+  kernelInfo["defines/ " "hlong"] = hlongString;
+  kernelInfo["defines/ " "dfloat"] = dfloatString;
+  kernelInfo["defines/ " "DBL_MAX"] = DBL_MAX;
+
+  kernelInfo["includes"] += oklDir+"findpts.okl.hpp";
+  kernelInfo["includes"] += oklDir+"poly.okl.hpp";
+
+  int rank, size;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &size);
+
+  occa::kernel findpts_local;
+  occa::kernel findpts_local_eval;
+
+  for (int r=0;r<2;r++){
+    if ((r==0 && rank==0) || (r==1 && rank>0)) {
+      findpts_local = device.buildKernel(oklDir+"findpts_local.okl", "ogs_findpts_local", kernelInfo);
+      findpts_local_eval = device.buildKernel(oklDir+"findpts_local_eval.okl", "findpts_local_eval_3", kernelInfo);
+    }
+    MPI_Barrier(comm);
+  }
+
+  return std::pair<occa::kernel, occa::kernel>(findpts_local_eval, findpts_local);
 }
 
 // Internal routine to copy findpts_local_data to the GPU
@@ -193,18 +244,11 @@ ogs_findpts_t* ogsFindptsSetup(
   occa::device* device) {
   // elx, n, m have length D
 
-  void* findpts_data;
-  if (D == 2) {
-    findpts_data = ogsHostFindptsSetup_2(comm, elx, n, nel, m, bbox_tol,
-                                         local_hash_size, global_hash_size,
-                                         npt_max, newt_tol);
-  } else if (D == 3) {
-    findpts_data = ogsHostFindptsSetup_3(comm, elx, n, nel, m, bbox_tol,
-                                         local_hash_size, global_hash_size,
-                                         npt_max, newt_tol);
-  } else {
-    assert(false);
-  }
+  assert(D == 3);
+
+  void* findpts_data = ogsHostFindptsSetup_3(comm, elx, n, nel, m, bbox_tol,
+                                             local_hash_size, global_hash_size,
+                                             npt_max, newt_tol);
 
   ogs_findpts_t* ogs_handle = new ogs_findpts_t();
   ogs_handle->D = D;
@@ -212,7 +256,7 @@ ogs_findpts_t* ogsFindptsSetup(
 
   if (device != nullptr) {
     ogs_handle->device = device;
-    std::pair<occa::kernel, occa::kernel> kernels = ogs::initFindptsKernel(comm, *device, D, n);
+    std::pair<occa::kernel, occa::kernel> kernels = ogs::initFindptsKernel();
     ogs_handle->local_eval_kernel = std::get<0>(kernels);
     ogs_handle->local_kernel = std::get<1>(kernels);
 

@@ -235,7 +235,6 @@ set(SRC
     src/ogsFindpts/ogs_findpts.c
     src/ogsFindpts/ogsDevFindpts.c
     src/ogsFindpts/ogsHostFindpts.c
-    src/ogsFindpts/ogsKernels_FINDPTS.cpp
     ${MESH_SOURCES}
     ${PARALMOND_SOURCES}
     ${ELLIPTIC_SOURCES}
@@ -244,11 +243,7 @@ set(SRC
 )
 
 set_property(
-<<<<<<< HEAD
    SOURCE src/core/printHeader.cpp
-=======
-   SOURCE src/lib/nekrs.cpp 
->>>>>>> 040a23e2... Put findpts in a seperate directory from ogs
    APPEND PROPERTY COMPILE_DEFINITIONS
    GITCOMMITHASH="${GIT_COMMIT_HASH}"
    NEKRS_VERSION=${PROJECT_VERSION_MAJOR}
@@ -308,7 +303,6 @@ target_include_directories(nekrs-bin PRIVATE src/lib)
 set_target_properties(nekrs-bin PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME nekrs)
 target_link_libraries(nekrs-bin nekrs-lib)
 
-<<<<<<< HEAD
 if(ENABLE_CUDA)
   set(BACKEND_DEFAULT "CUDA" CACHE STRING "Default occa mode")
 elseif(ENABLE_HIP)
@@ -316,31 +310,6 @@ elseif(ENABLE_HIP)
 else()
   set(BACKEND_DEFAULT "SERIAL" CACHE STRING "Default occa mode")
 endif()
-=======
-message(NOTICE "")
-message(NOTICE "------------ Summary ------------")
-message(NOTICE "Installation directory: ${CMAKE_CURRENT_SOURCE_DIR}") 
-message(NOTICE "C compiler: ${CMAKE_C_COMPILER}")
-message(NOTICE "C++ compiler: ${CMAKE_CXX_COMPILER}")
-message(NOTICE "Fortran compiler: ${CMAKE_Fortran_COMPILER}")
-message(NOTICE "Default backend : ${BACKEND_DEFAULT}")
-message(NOTICE "CPU backend compiler: ${OCCA_CXX} (flags: ${OCCA_CXXFLAGS})")
-if(ENABLE_CUDA) 
-  message(NOTICE "NVIDIA CUDA backend enabled (flags: ${OCCA_CUDA_COMPILER_FLAGS})")
-endif()
-if(ENABLE_HIP) 
-  message(NOTICE "AMD HIP backend enabled (flags: ${OCCA_HIP_COMPILER_FLAGS})")
-endif()
-if(ENABLE_OPENCL) 
-  message(NOTICE "OPENCL backend enabled (flags: ${OCCA_OPENCL_COMPILER_FLAGS})")
-endif()
-if(GPU_MPI)
-  message(NOTICE "GPU aware MPI support enabled")
-else(GPU_MPI)
-  message(NOTICE "GPU aware MPI support disabled!")
-endif()
-message(NOTICE "")
->>>>>>> 040a23e2... Put findpts in a seperate directory from ogs
 
 #################################################################################
 ### Install                                                                     #

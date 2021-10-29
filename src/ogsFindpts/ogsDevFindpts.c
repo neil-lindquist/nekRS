@@ -37,6 +37,30 @@ SOFTWARE.
 
 #include "ogstypes.h"
 
+// need to access internals of findpts_data structs
+struct hash_data_2 {
+  ulong hash_n;
+  struct dbl_range bnd[2];
+  double fac[2];
+  uint *offset;
+};
+struct findpts_data_2 {
+  struct crystal cr;
+  struct findpts_local_data_2 local;
+  struct hash_data_2 hash;
+};
+struct hash_data_3 {
+  ulong hash_n;
+  struct dbl_range bnd[3];
+  double fac[3];
+  uint *offset;
+};
+struct findpts_data_3 {
+  struct crystal cr;
+  struct findpts_local_data_3 local;
+  struct hash_data_3 hash;
+};
+
 void ogsDevFindpts_2(      dlong  *const  code_base   , const dlong  code_stride   ,
                            dlong  *const  proc_base   , const dlong  proc_stride   ,
                            dlong  *const    el_base   , const dlong    el_stride   ,

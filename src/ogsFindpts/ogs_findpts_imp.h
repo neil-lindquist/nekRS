@@ -7,6 +7,7 @@
 #define out_pt                 TOKEN_PASTE(out_pt_                          ,D)
 #define findpts_el_data        TOKEN_PASTE(findpts_el_data_                 ,D)
 #define findpts_local_data     TOKEN_PASTE(findpts_local_data_              ,D)
+#define findpts_local_eval_int TOKEN_PASTE(ogs_findpts_local_eval_internal_ ,D)
 #define findpts_local          TOKEN_PASTE(ogs_findpts_local_               ,D)
 #define findpts_local_eval     TOKEN_PASTE(ogs_findpts_local_eval_          ,D)
 #define findpts_data           TOKEN_PASTE(findpts_data_                    ,D)

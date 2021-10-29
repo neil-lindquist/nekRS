@@ -20,10 +20,7 @@
 
     const dfloat * r = CAT(dfloat, r, i);
     for(dlong j= 0;j<INNER_SIZE;++j;@inner){
-      if(j==0){
-        (*AT(dlong, out_proc,  i)) = (*CAT(dlong, src_proc,  i));
-        (*AT(dlong, out_index, i)) = (*CAT(dlong, src_index, i));
-      }
+
       lagrange_eval(wtr, fd->fed.lag_data[0], p_NR, 0, r[0], j);
       lagrange_eval(wts, fd->fed.lag_data[1], p_NS, 0, r[1], j);
     }
@@ -125,10 +122,7 @@
 
     const dfloat * r = CAT(dfloat, r, i);
     for(dlong j=0;j<INNER_SIZE;++j;@inner){
-      if(j==0){
-        (*AT(dlong, out_proc,  i)) = (*CAT(dlong, src_proc,  i));
-        (*AT(dlong, out_index, i)) = (*CAT(dlong, src_index, i));
-      }
+
       lagrange_eval(wtr, fd->fed.lag_data[0], p_NR, 0, r[0], j);
       lagrange_eval(wts, fd->fed.lag_data[1], p_NS, 0, r[1], j);
       lagrange_eval(wtt, fd->fed.lag_data[2], p_NT, 0, r[2], j);

@@ -17,6 +17,7 @@ set(GSDIR       ${NEKRS_INSTALL_DIR}/gslib)
 set(INCLUDE_DIRS
   ${CASE_DIR}
   ${OGSDIR}
+  ${OGSDIR}/include
   ${GSDIR}
   ${NEKRS_INSTALL_DIR}
   ${NEKRS_INSTALL_DIR}/include

@@ -181,7 +181,7 @@ void ogs_findpts_local_3(    uint   *const  code_base   , const unsigned  code_s
   }
 }
 
-void ogs_findpts_local_eval_2(
+void ogs_findpts_local_eval_internal_2(
     struct eval_out_pt_2 *opt, const struct eval_src_pt_2 *spt,
     const uint pn, const void *const in,
     struct findpts_local_data_2 *const gs_fd, const void *const ogs_fd_void)

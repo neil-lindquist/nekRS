@@ -3,6 +3,10 @@
 
 #include "ogs.hpp"
 
+namespace ogs {
+  std::pair<occa::kernel, occa::kernel> initFindptsKernel();
+}
+
 typedef struct {
   int D;
   void *findpts_data;
